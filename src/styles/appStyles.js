@@ -49,13 +49,24 @@ export const styles = StyleSheet.create({
   },
   content: {
     padding: 18,
-    paddingBottom: 120
+    paddingBottom: 130
+  },
+  centered: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20
+    marginBottom: 20,
+    gap: 12
+  },
+  headerTextBlock: {
+    flex: 1,
+    flexShrink: 1,
+    paddingRight: 4
   },
   greeting: {
     color: colors.primary,
@@ -66,17 +77,18 @@ export const styles = StyleSheet.create({
   },
   screenTitle: {
     color: colors.ink,
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "900",
     marginTop: 4,
-    letterSpacing: -0.5
+    letterSpacing: -0.5,
+    flexShrink: 1
   },
   subtitle: {
     color: colors.muted,
     fontSize: 14,
     marginTop: 6,
-    maxWidth: 280,
-    lineHeight: 20
+    lineHeight: 20,
+    flexShrink: 1
   },
   avatar: {
     width: 46,
@@ -134,7 +146,8 @@ export const styles = StyleSheet.create({
     textAlignVertical: "top"
   },
   button: {
-    minHeight: 56,
+    minHeight: 52,
+    paddingHorizontal: 18,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
@@ -142,7 +155,7 @@ export const styles = StyleSheet.create({
     ...shadow
   },
   compactButton: {
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 16
   },
   primaryButton: {
@@ -165,7 +178,8 @@ export const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 14
+    marginBottom: 14,
+    alignItems: "stretch"
   },
   rowWrap: {
     flexDirection: "row",
@@ -181,7 +195,7 @@ export const styles = StyleSheet.create({
     marginBottom: 14
   },
   chip: {
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 18,
     borderRadius: 22,
     borderWidth: 1.5,
@@ -274,23 +288,26 @@ export const styles = StyleSheet.create({
   },
   quickGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     marginBottom: 22
   },
   quickAction: {
-    flex: 1,
-    minHeight: 100,
+    width: "47%",
+    flexGrow: 1,
+    minHeight: 72,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 12,
     ...softShadow
   },
   quickIcon: {
-    fontSize: 26,
-    marginBottom: 10
+    fontSize: 24,
+    marginBottom: 8
   },
   quickText: {
     color: colors.ink,
@@ -469,9 +486,12 @@ export const styles = StyleSheet.create({
     ...shadow
   },
   tabButton: {
-    minWidth: 64,
+    minWidth: 52,
+    minHeight: 52,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 2
   },
   tabIcon: {
     fontSize: 20,
@@ -567,26 +587,34 @@ export const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
-    gap: 18,
-    marginTop: 10
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 12
   },
   actionBtn: {
-    paddingVertical: 6,
-    paddingRight: 6
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center"
   },
   actionEditText: {
     color: colors.primary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800"
   },
   actionDeleteText: {
     color: colors.danger,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800"
   },
   actionDefaultText: {
     color: colors.success,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800"
   },
   homeHeaderRow: {
@@ -595,17 +623,21 @@ export const styles = StyleSheet.create({
     gap: 12
   },
   logoutBtn: {
-    paddingHorizontal: 16,
+    minHeight: 44,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: colors.danger,
     backgroundColor: "#fff",
-    marginTop: 6
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+    marginTop: 2
   },
   logoutText: {
     color: colors.danger,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "800"
   },
   inputDisabled: {
@@ -622,9 +654,9 @@ export const styles = StyleSheet.create({
   geoDetectBtn: {
     backgroundColor: colors.primary,
     borderRadius: 12,
-    paddingVertical: 9,
+    paddingVertical: 10,
     paddingHorizontal: 14,
-    minHeight: 38,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     ...softShadow
@@ -651,7 +683,7 @@ export const styles = StyleSheet.create({
   },
   geoToggle: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 44,
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: colors.line,
@@ -814,5 +846,298 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     marginLeft: 10
+  },
+  rolePicker: {
+    justifyContent: "center",
+    marginBottom: 8
+  },
+  segmentRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 18
+  },
+  emptyCard: {
+    backgroundColor: colors.paper,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: "dashed",
+    padding: 22,
+    marginBottom: 18,
+    alignItems: "flex-start"
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 8
+  },
+  emptyCta: {
+    marginTop: 14,
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  emptyCtaText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 14
+  },
+  planCard: {
+    backgroundColor: colors.paper,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 18,
+    marginBottom: 14,
+    ...softShadow
+  },
+  planCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 10
+  },
+  planCardTitle: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: "800"
+  },
+  typeBadge: {
+    backgroundColor: "#ede9fe",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4
+  },
+  typeBadgeText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  progressMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 8
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#e2e8f0",
+    overflow: "hidden"
+  },
+  progressFill: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: colors.primary
+  },
+  planBookLink: {
+    marginTop: 12
+  },
+  stepLabel: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+    marginBottom: 12,
+    textTransform: "uppercase"
+  },
+  timePicker: {
+    marginBottom: 8
+  },
+  timePickerReadout: {
+    color: colors.ink,
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+    marginBottom: 4
+  },
+  timePickerHint: {
+    color: colors.muted,
+    fontSize: 13,
+    marginBottom: 14,
+    lineHeight: 18
+  },
+  timePickerLabel: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 8,
+    marginTop: 4
+  },
+  timePickerChipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingBottom: 12,
+    paddingRight: 8
+  },
+  timePickerChip: {
+    minWidth: 48,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  timePickerChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
+  },
+  timePickerChipText: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  timePickerChipTextActive: {
+    color: "#fff"
+  },
+  timePickerChipDisabled: {
+    opacity: 0.35
+  },
+  timePickerChipTextDisabled: {
+    color: colors.muted
+  },
+  timePickerDateChip: {
+    minWidth: 72,
+    paddingHorizontal: 14
+  },
+  timePickerMeridiemRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 8
+  },
+  timePickerMeridiem: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  vehicleStrip: {
+    marginBottom: 12
+  },
+  vehicleChipCard: {
+    width: 180,
+    backgroundColor: colors.paper,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    marginRight: 12,
+    ...softShadow
+  },
+  partnerJobThumb: {
+    width: 96,
+    height: 96,
+    borderRadius: 14,
+    marginRight: 10,
+    backgroundColor: "#e2e8f0"
+  },
+  tabButtonActive: {
+    backgroundColor: "#f5f3ff",
+    borderRadius: 14
+  },
+  buttonDisabled: {
+    opacity: 0.55
+  },
+  mapPickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 8
+  },
+  mapPickerTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  mapPickerHint: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    paddingHorizontal: 18,
+    marginBottom: 10
+  },
+  mapPickerActions: {
+    paddingHorizontal: 18,
+    marginBottom: 10
+  },
+  mapWebWrap: {
+    flex: 1,
+    marginHorizontal: 12,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#e2e8f0"
+  },
+  mapWebView: {
+    flex: 1,
+    backgroundColor: "transparent"
+  },
+  mapPickerFooter: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 18
+  },
+  locationSummary: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    marginBottom: 12
+  },
+  locationActionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 8
+  },
+  profileImageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 14
+  },
+  profileImagePreview: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: "#ede9fe",
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  profileImage: {
+    width: 84,
+    height: 84,
+    borderRadius: 42
+  },
+  profileImagePlaceholder: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "700",
+    textAlign: "center",
+    paddingHorizontal: 8
   }
 });

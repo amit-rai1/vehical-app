@@ -9,11 +9,41 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to set workshop and service pickup pins on the map.",
+        "NSPhotoLibraryUsageDescription": "We use your photos so you can set a profile image during registration."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#4f35d8"
+      },
+      "package": "com.anonymous.vehicleservicemobile",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Vehicle Service to use your location for address and workshop pins."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Vehicle Service to access your photos for profile image upload."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6dfe5727-8fb8-4f8a-84e7-29857b9fa77a"
       }
     }
   }

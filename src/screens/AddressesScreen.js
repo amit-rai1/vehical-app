@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import * as Location from "expo-location";
 import { addressApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
 import { Header } from "../components/Header";
 import { Select } from "../components/Select";
+import {
+  LocationMapPicker,
+  getCurrentCoordinates,
+  reverseGeocode
+} from "../components/LocationMapPicker";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -48,6 +52,7 @@ export function AddressesScreen() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [mapVisible, setMapVisible] = useState(false);
 
   const [form, setForm] = useState({ ...EMPTY_FORM });
 
@@ -104,26 +109,35 @@ export function AddressesScreen() {
     setShowForm(true);
   }
 
+  function applyLocation(latitude, longitude, addressHint) {
+    setForm(current => ({
+      ...current,
+      latitude: String(latitude),
+      longitude: String(longitude),
+      city: current.city?.trim() ? current.city : addressHint?.city || current.city,
+      state: current.state?.trim() ? current.state : addressHint?.state || current.state,
+      country: current.country?.trim()
+        ? current.country
+        : addressHint?.country || current.country || "India",
+      pincode: current.pincode?.trim()
+        ? current.pincode
+        : addressHint?.pincode || current.pincode,
+      addressLine1: current.addressLine1?.trim()
+        ? current.addressLine1
+        : addressHint?.addressLine || addressHint?.displayName || current.addressLine1
+    }));
+  }
+
   async function detectLocation() {
     setLocating(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission denied",
-          "Location permission is required to auto-fill coordinates. You can enter them manually."
-        );
-        return;
-      }
-      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      if (coords) {
-        update("latitude", String(coords.latitude));
-        update("longitude", String(coords.longitude));
-      }
+      const coords = await getCurrentCoordinates();
+      const hint = await reverseGeocode(coords.latitude, coords.longitude);
+      applyLocation(coords.latitude, coords.longitude, hint);
     } catch (error) {
       Alert.alert(
         "Location unavailable",
-        "Could not get your location. Please enter coordinates manually or use the default."
+        error.message || "Could not get your location. Please pick on the map."
       );
     } finally {
       setLocating(false);
@@ -149,6 +163,12 @@ export function AddressesScreen() {
     }
     if (!form.pincode) {
       Alert.alert("Missing field", "Please enter a pincode.");
+      return;
+    }
+    const lat = Number(form.latitude);
+    const lng = Number(form.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      Alert.alert("Location required", "Please set location with current GPS or pick on map.");
       return;
     }
 
@@ -218,6 +238,7 @@ export function AddressesScreen() {
   }
 
   return (
+    <>
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Header title="My Addresses" subtitle="Pickup and drop locations for service bookings." />
 
@@ -305,7 +326,7 @@ export function AddressesScreen() {
           </View>
 
           <View style={styles.geoSectionHeader}>
-            <Text style={styles.label}>Location Coordinates</Text>
+            <Text style={styles.label}>Location on map</Text>
             <TouchableOpacity
               style={[styles.geoDetectBtn, locating && styles.geoDetectBtnDisabled]}
               onPress={detectLocation}
@@ -314,29 +335,24 @@ export function AddressesScreen() {
               {locating ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.geoDetectText}>📍 Auto Detect</Text>
+                <Text style={styles.geoDetectText}>Current location</Text>
               )}
             </TouchableOpacity>
           </View>
-          <Text style={styles.geoHint}>
-            Latitude & Longitude are mandatory. Tap auto detect or enter manually.
-          </Text>
-
-          <View style={styles.twoCol}>
-            <Field
-              label="Latitude"
-              value={form.latitude}
-              onChangeText={value => update("latitude", value)}
-              keyboardType="decimal-pad"
-              placeholder="18.5204"
-            />
-            <Field
-              label="Longitude"
-              value={form.longitude}
-              onChangeText={value => update("longitude", value)}
-              keyboardType="decimal-pad"
-              placeholder="73.8567"
-            />
+          <View style={styles.locationSummary}>
+            <Text style={styles.listSub}>
+              {form.latitude && form.longitude
+                ? `${Number(form.latitude).toFixed(6)}, ${Number(form.longitude).toFixed(6)}`
+                : "No coordinates set"}
+            </Text>
+            <Text style={styles.geoHint}>
+              Use your current GPS position or pick a pin on the free OpenStreetMap.
+            </Text>
+            <View style={styles.locationActionsRow}>
+              <TouchableOpacity style={styles.geoDetectBtn} onPress={() => setMapVisible(true)}>
+                <Text style={styles.geoDetectText}>Pick on map</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -428,5 +444,17 @@ export function AddressesScreen() {
         })
       )}
     </ScrollView>
+
+      <LocationMapPicker
+        visible={mapVisible}
+        initialLatitude={form.latitude}
+        initialLongitude={form.longitude}
+        onClose={() => setMapVisible(false)}
+        onConfirm={({ latitude, longitude, addressHint }) => {
+          applyLocation(latitude, longitude, addressHint);
+          setMapVisible(false);
+        }}
+      />
+    </>
   );
 }

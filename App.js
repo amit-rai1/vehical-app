@@ -1,31 +1,114 @@
 import React, { useMemo, useState } from "react";
-import { SafeAreaView, StatusBar, View } from "react-native";
+import { StatusBar, View } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { clearAuthToken } from "./src/api/client";
 import { BottomTabs } from "./src/components/BottomTabs";
-import { services } from "./src/constants/catalog";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { AddressesScreen } from "./src/screens/AddressesScreen";
 import { BookingScreen } from "./src/screens/BookingScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { PartnerJobDetailScreen } from "./src/screens/PartnerJobDetailScreen";
+import { PartnerJobsScreen } from "./src/screens/PartnerJobsScreen";
+import { PlanDetailScreen } from "./src/screens/PlanDetailScreen";
+import { PaymentScreen } from "./src/screens/PaymentScreen";
+import { ServicesScreen } from "./src/screens/ServicesScreen";
 import { TrackScreen } from "./src/screens/TrackScreen";
 import { VehiclesScreen } from "./src/screens/VehiclesScreen";
 import { styles } from "./src/styles/appStyles";
 import { colors } from "./src/theme";
 
-export default function App() {
+function isPartner(user) {
+  return String(user?.roleName || "").toLowerCase().includes("partner");
+}
+
+function AppShell() {
+  const insets = useSafeAreaInsets();
   const [user, setUser] = useState(null);
   const [tab, setTab] = useState("home");
-  const [selectedService, setSelectedService] = useState(services[0]);
+  const [partnerTab, setPartnerTab] = useState("jobs");
+  const [selectedService, setSelectedService] = useState(null);
+  const [selectedPartnerJobId, setSelectedPartnerJobId] = useState(null);
+  const [screen, setScreen] = useState("root");
+  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [pendingBookingPlanId, setPendingBookingPlanId] = useState(null);
 
   function handleLogout() {
     clearAuthToken();
     setUser(null);
     setTab("home");
+    setPartnerTab("jobs");
+    setScreen("root");
+    setSelectedService(null);
+    setSelectedPartnerJobId(null);
+    setPaymentInfo(null);
+    setPendingBookingPlanId(null);
   }
 
-  const screen = useMemo(() => {
+  function bumpRefresh() {
+    setRefreshKey(key => key + 1);
+  }
+
+  const content = useMemo(() => {
     if (!user) {
       return <AuthScreen onSignedIn={setUser} />;
+    }
+
+    if (isPartner(user)) {
+      if (screen === "partnerJobDetail" && selectedPartnerJobId) {
+        return (
+          <PartnerJobDetailScreen
+            bookingId={selectedPartnerJobId}
+            onBack={() => {
+              setSelectedPartnerJobId(null);
+              setScreen("root");
+            }}
+            onChanged={bumpRefresh}
+          />
+        );
+      }
+
+      return (
+        <PartnerJobsScreen
+          user={user}
+          refreshKey={refreshKey}
+          todayOnly={partnerTab === "schedule"}
+          onLogout={handleLogout}
+          onOpenJob={id => {
+            setSelectedPartnerJobId(id);
+            setScreen("partnerJobDetail");
+          }}
+        />
+      );
+    }
+
+    if (screen === "planDetail" && selectedService) {
+      return (
+        <PlanDetailScreen
+          service={selectedService}
+          onBack={() => setScreen("root")}
+          onOrderCreated={info => {
+            setPaymentInfo(info);
+            setScreen("payment");
+          }}
+        />
+      );
+    }
+
+    if (screen === "payment" && paymentInfo) {
+      return (
+        <PaymentScreen
+          user={user}
+          paymentInfo={paymentInfo}
+          onBack={() => setScreen("planDetail")}
+          onPaymentSuccess={() => {
+            setPaymentInfo(null);
+            setScreen("root");
+            setTab("home");
+            bumpRefresh();
+          }}
+        />
+      );
     }
 
     if (tab === "vehicles") {
@@ -36,30 +119,115 @@ export default function App() {
       return <AddressesScreen />;
     }
 
+    if (tab === "services") {
+      return (
+        <ServicesScreen
+          onOpenPlanDetail={service => {
+            setSelectedService(service);
+            setScreen("planDetail");
+          }}
+        />
+      );
+    }
+
     if (tab === "booking") {
-      return <BookingScreen selectedService={selectedService} onNavigate={setTab} />;
+      return (
+        <BookingScreen
+          refreshKey={refreshKey}
+          pendingPlanId={pendingBookingPlanId}
+          onPendingPlanConsumed={() => setPendingBookingPlanId(null)}
+          onNavigate={next => {
+            if (next === "track" || next === "home") {
+              bumpRefresh();
+            }
+            setTab(next);
+            setScreen("root");
+          }}
+        />
+      );
     }
 
     if (tab === "track") {
-      return <TrackScreen />;
+      return <TrackScreen refreshKey={refreshKey} />;
     }
 
     return (
       <HomeScreen
         user={user}
-        onNavigate={setTab}
+        refreshKey={refreshKey}
+        onNavigate={next => {
+          setTab(next);
+          setScreen("root");
+        }}
         onLogout={handleLogout}
-        selectedService={selectedService}
-        setSelectedService={setSelectedService}
+        onOpenServices={() => {
+          setTab("services");
+          setScreen("root");
+        }}
+        onBookWithPlan={planId => {
+          setPendingBookingPlanId(planId);
+          setTab("booking");
+          setScreen("root");
+        }}
       />
     );
-  }, [selectedService, tab, user]);
+  }, [
+    partnerTab,
+    paymentInfo,
+    pendingBookingPlanId,
+    refreshKey,
+    screen,
+    selectedPartnerJobId,
+    selectedService,
+    tab,
+    user
+  ]);
+
+  const showCustomerTabs = Boolean(user) && !isPartner(user) && screen === "root";
+  const showPartnerTabs =
+    Boolean(user) && isPartner(user) && screen === "root";
+  const showTabs = showCustomerTabs || showPartnerTabs;
+  const bottomPad = showTabs ? Math.max(insets.bottom, 12) + 88 : Math.max(insets.bottom, 8);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.wash} />
-      <View style={styles.appShell}>{screen}</View>
-      {user ? <BottomTabs activeTab={tab} onChange={setTab} /> : null}
-    </SafeAreaView>
+      <View style={[styles.appShell, { paddingBottom: showTabs ? 0 : bottomPad }]}>
+        {content}
+      </View>
+      {showCustomerTabs ? (
+        <BottomTabs
+          variant="customer"
+          bottomInset={Math.max(insets.bottom, 12)}
+          activeTab={
+            ["home", "services", "booking", "addresses", "track"].includes(tab) ? tab : "home"
+          }
+          onChange={next => {
+            setTab(next);
+            setScreen("root");
+          }}
+        />
+      ) : null}
+      {showPartnerTabs ? (
+        <BottomTabs
+          variant="partner"
+          bottomInset={Math.max(insets.bottom, 12)}
+          activeTab={["jobs", "schedule"].includes(partnerTab) ? partnerTab : "jobs"}
+          onChange={next => {
+            setPartnerTab(next);
+            setScreen("root");
+            setSelectedPartnerJobId(null);
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppShell />
+    </SafeAreaProvider>
   );
 }

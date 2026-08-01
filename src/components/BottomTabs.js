@@ -2,26 +2,39 @@ import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles/appStyles";
 
-const tabs = [
-  ["home", "\u{1F3E0}", "Home"],
-  ["vehicles", "\u{1F697}", "Vehicles"],
-  ["booking", "\u{1F4C5}", "Book"],
-  ["track", "\u{1F4CD}", "Track"]
+const CUSTOMER_TABS = [
+  ["home", "⌂", "Home"],
+  ["services", "☰", "Services"],
+  ["booking", "▦", "Book"],
+  ["addresses", "📍", "Address"],
+  ["track", "◎", "Track"]
 ];
 
-export function BottomTabs({ activeTab, onChange }) {
+const PARTNER_TABS = [
+  ["jobs", "▦", "Jobs"],
+  ["schedule", "📅", "Today"]
+];
+
+export function BottomTabs({
+  activeTab,
+  onChange,
+  bottomInset = 16,
+  variant = "customer"
+}) {
+  const tabs = variant === "partner" ? PARTNER_TABS : CUSTOMER_TABS;
+
   return (
-    <View style={styles.tabBar}>
+    <View style={[styles.tabBar, { bottom: bottomInset }]}>
       {tabs.map(([key, icon, label]) => {
         const active = activeTab === key;
         return (
           <TouchableOpacity
             key={key}
             onPress={() => onChange(key)}
-            style={styles.tabButton}
+            style={[styles.tabButton, active && styles.tabButtonActive]}
             activeOpacity={0.7}
           >
-            <Text style={styles.tabIcon}>{icon}</Text>
+            <Text style={[styles.tabIcon, active && styles.activeTab]}>{icon}</Text>
             <Text style={[styles.tabLabel, active && styles.activeTab]}>{label}</Text>
           </TouchableOpacity>
         );

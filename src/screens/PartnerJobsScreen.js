@@ -59,6 +59,40 @@ function isSameLocalDay(iso) {
   );
 }
 
+function isActiveStatus(status) {
+  const s = String(status ?? "");
+  return s === "2" || s === "Confirmed" || s === "3" || s === "InProgress";
+}
+
+function isHistoryStatus(status) {
+  const s = String(status ?? "");
+  return s === "4" || s === "Completed" || s === "5" || s === "Cancelled";
+}
+
+function JobCard({ job, onOpenJob }) {
+  return (
+    <TouchableOpacity
+      style={styles.planCard}
+      activeOpacity={0.85}
+      onPress={() => onOpenJob?.(job.bookingId)}
+    >
+      <View style={styles.planCardHeader}>
+        <Text style={styles.planCardTitle}>{job.planName || "Service"}</Text>
+        <View style={styles.typeBadge}>
+          <Text style={styles.typeBadgeText}>{bookingStatusLabel(job.status)}</Text>
+        </View>
+      </View>
+      <Text style={styles.listSub}>{formatWhen(job.scheduledAt)}</Text>
+      <Text style={styles.listTitle}>{job.customerName || "Customer"}</Text>
+      <Text style={styles.listSub}>
+        {job.vehicleMakeModel || "Vehicle"} · {job.vehicleNumber || "—"}
+      </Text>
+      <Text style={styles.listSub}>{job.addressSummary || "Address"}</Text>
+      <Text style={[styles.linkText, styles.jobCardCta]}>View details ›</Text>
+    </TouchableOpacity>
+  );
+}
+
 export function PartnerJobsScreen({
   user,
   onLogout,
@@ -118,26 +152,19 @@ export function PartnerJobsScreen({
     ]);
   }
 
-  const todayJobs = useMemo(
-    () => (todayOnly ? jobs : jobs.filter(j => isSameLocalDay(j.scheduledAt))),
-    [jobs, todayOnly]
+  const activeJobs = useMemo(() => jobs.filter(j => isActiveStatus(j.status)), [jobs]);
+  const historyJobs = useMemo(() => jobs.filter(j => isHistoryStatus(j.status)), [jobs]);
+  const todayActive = useMemo(
+    () => activeJobs.filter(j => isSameLocalDay(j.scheduledAt)),
+    [activeJobs]
+  );
+  const todayHistory = useMemo(
+    () => historyJobs.filter(j => isSameLocalDay(j.scheduledAt)),
+    [historyJobs]
   );
 
-  const activeJobs = useMemo(
-    () =>
-      jobs.filter(j => {
-        const s = String(j.status);
-        return (
-          s === "2" ||
-          s === "Confirmed" ||
-          s === "3" ||
-          s === "InProgress"
-        );
-      }),
-    [jobs]
-  );
-
-  const list = todayOnly ? todayJobs : activeJobs.length ? activeJobs : jobs;
+  const assignedList = todayOnly ? todayActive : activeJobs;
+  const historyList = todayOnly ? todayHistory : historyJobs;
 
   return (
     <ScrollView
@@ -156,7 +183,7 @@ export function PartnerJobsScreen({
     >
       <Header
         title={`Hello, ${user?.name || "Partner"}`}
-        subtitle={todayOnly ? "Today’s schedule" : "Assigned jobs dashboard"}
+        subtitle={todayOnly ? "Today’s schedule" : "Jobs & service history"}
         onLogout={confirmLogout}
       />
 
@@ -178,71 +205,43 @@ export function PartnerJobsScreen({
         </View>
       ) : (
         <>
-          {!todayOnly ? (
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Today</Text>
-              <Text style={styles.linkText}>{todayJobs.length} job(s)</Text>
-            </View>
-          ) : null}
-
-          {!todayOnly && todayJobs.length > 0 ? (
-            todayJobs.slice(0, 3).map(job => (
-              <TouchableOpacity
-                key={`today-${job.bookingId}`}
-                style={styles.planCard}
-                activeOpacity={0.85}
-                onPress={() => onOpenJob?.(job.bookingId)}
-              >
-                <View style={styles.planCardHeader}>
-                  <Text style={styles.planCardTitle}>{job.planName || "Service"}</Text>
-                  <View style={styles.typeBadge}>
-                    <Text style={styles.typeBadgeText}>{bookingStatusLabel(job.status)}</Text>
-                  </View>
-                </View>
-                <Text style={styles.listSub}>{formatWhen(job.scheduledAt)}</Text>
-                <Text style={styles.listSub}>
-                  {job.customerName} · {job.vehicleNumber || "Vehicle"}
-                </Text>
-              </TouchableOpacity>
-            ))
-          ) : null}
-
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {todayOnly ? "Today’s schedule" : "Assigned jobs"}
+              {todayOnly ? "Today · Active" : "Assigned jobs"}
             </Text>
-            <Text style={styles.linkText}>{list.length}</Text>
+            <Text style={styles.linkText}>{assignedList.length}</Text>
           </View>
 
-          {list.length === 0 ? (
+          {assignedList.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No jobs yet</Text>
+              <Text style={styles.emptyTitle}>No active jobs</Text>
               <Text style={styles.emptySub}>
-                When customers book and you are assigned by location, jobs will show here.
+                When customers book and you are assigned, new jobs show up here.
               </Text>
             </View>
           ) : (
-            list.map(job => (
-              <TouchableOpacity
-                key={job.bookingId}
-                style={styles.planCard}
-                activeOpacity={0.85}
-                onPress={() => onOpenJob?.(job.bookingId)}
-              >
-                <View style={styles.planCardHeader}>
-                  <Text style={styles.planCardTitle}>{job.planName || "Service"}</Text>
-                  <View style={styles.typeBadge}>
-                    <Text style={styles.typeBadgeText}>{bookingStatusLabel(job.status)}</Text>
-                  </View>
-                </View>
-                <Text style={styles.listSub}>{formatWhen(job.scheduledAt)}</Text>
-                <Text style={styles.listTitle}>{job.customerName || "Customer"}</Text>
-                <Text style={styles.listSub}>
-                  {job.vehicleMakeModel || "Vehicle"} · {job.vehicleNumber || "—"}
-                </Text>
-                <Text style={styles.listSub}>{job.addressSummary || "Address"}</Text>
-                <Text style={[styles.linkText, { marginTop: 10 }]}>View details ›</Text>
-              </TouchableOpacity>
+            assignedList.map(job => (
+              <JobCard key={job.bookingId} job={job} onOpenJob={onOpenJob} />
+            ))
+          )}
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {todayOnly ? "Today · History" : "Service history"}
+            </Text>
+            <Text style={styles.linkText}>{historyList.length}</Text>
+          </View>
+
+          {historyList.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>No completed services yet</Text>
+              <Text style={styles.emptySub}>
+                Finished jobs appear here so you can review photos and customer feedback.
+              </Text>
+            </View>
+          ) : (
+            historyList.map(job => (
+              <JobCard key={`hist-${job.bookingId}`} job={job} onOpenJob={onOpenJob} />
             ))
           )}
         </>

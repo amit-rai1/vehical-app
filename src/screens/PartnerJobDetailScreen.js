@@ -124,38 +124,80 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
     }
   }
 
-  async function pickImages() {
+  async function appendPickedAssets(assets) {
+    const incoming = (assets || [])
+      .filter(a => a.base64)
+      .map(a => ({
+        uri: a.uri,
+        base64: `data:${a.mimeType || "image/jpeg"};base64,${a.base64}`
+      }));
+
+    if (!incoming.length) {
+      Alert.alert("No images", "Could not read selected images. Try again.");
+      return;
+    }
+
+    setPickedImages(prev => {
+      const merged = [...prev, ...incoming].slice(0, 5);
+      return merged.map((img, index) => ({
+        ...img,
+        displayOrder: index + 1
+      }));
+    });
+  }
+
+  function promptAddPhotos() {
+    if (pickedImages.length >= 5) {
+      Alert.alert("Limit reached", "You can upload up to 5 photos.");
+      return;
+    }
+    Alert.alert("Add service photo", "Choose how to add photos", [
+      { text: "Take photo", onPress: () => takePhoto() },
+      { text: "Choose from gallery", onPress: () => pickFromGallery() },
+      { text: "Cancel", style: "cancel" }
+    ]);
+  }
+
+  async function takePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission needed", "Allow camera access to take service photos.");
+      return;
+    }
+
+    const remaining = 5 - pickedImages.length;
+    if (remaining <= 0) return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+      base64: true
+    });
+
+    if (result.canceled) return;
+    await appendPickedAssets(result.assets);
+  }
+
+  async function pickFromGallery() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission needed", "Allow photo library access to upload service images.");
       return;
     }
 
+    const remaining = 5 - pickedImages.length;
+    if (remaining <= 0) return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.7,
       base64: true,
-      selectionLimit: 5
+      selectionLimit: remaining
     });
 
     if (result.canceled) return;
-
-    const next = (result.assets || [])
-      .filter(a => a.base64)
-      .slice(0, 5)
-      .map((a, index) => ({
-        uri: a.uri,
-        base64: `data:${a.mimeType || "image/jpeg"};base64,${a.base64}`,
-        displayOrder: index + 1
-      }));
-
-    if (!next.length) {
-      Alert.alert("No images", "Could not read selected images. Try again.");
-      return;
-    }
-
-    setPickedImages(next);
+    await appendPickedAssets(result.assets);
   }
 
   async function handleComplete() {
@@ -269,7 +311,15 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
           <Text style={styles.emptySub}>
             Upload at least one photo of the completed work before marking the job complete.
           </Text>
-          <Button title="Add photos" variant="ghost" onPress={pickImages} disabled={busy} />
+          <Button title="Add photos" variant="ghost" onPress={promptAddPhotos} disabled={busy} />
+          <View style={styles.row}>
+            <View style={styles.flex}>
+              <Button title="Camera" variant="ghost" onPress={takePhoto} disabled={busy} />
+            </View>
+            <View style={styles.flex}>
+              <Button title="Gallery" variant="ghost" onPress={pickFromGallery} disabled={busy} />
+            </View>
+          </View>
           {pickedImages.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vehicleStrip}>
               {pickedImages.map((img, index) => (
@@ -317,6 +367,33 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
               ))}
             </ScrollView>
           ) : null}
+        </View>
+      ) : null}
+
+      {completed ? (
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Customer feedback</Text>
+          {job.customerRating != null ? (
+            <>
+              <Text style={styles.listTitle}>
+                {"★".repeat(Math.min(5, Number(job.customerRating) || 0))}
+                {"☆".repeat(Math.max(0, 5 - (Number(job.customerRating) || 0)))}{" "}
+                ({job.customerRating}/5)
+              </Text>
+              {job.customerFeedbackComments ? (
+                <Text style={styles.listSub}>{job.customerFeedbackComments}</Text>
+              ) : (
+                <Text style={styles.listSub}>No written message.</Text>
+              )}
+              {job.customerFeedbackSubmittedOn ? (
+                <Text style={styles.listSub}>
+                  Submitted: {formatWhen(job.customerFeedbackSubmittedOn)}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <Text style={styles.emptySub}>Customer has not rated this service yet.</Text>
+          )}
         </View>
       ) : null}
 

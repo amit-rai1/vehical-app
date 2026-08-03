@@ -26,7 +26,7 @@ import { styles } from "../styles/appStyles";
 const RESEND_COOLDOWN_SECONDS = 15;
 const OTP_EXPIRY_SECONDS = 5 * 60;
 const MAX_OTP_SENDS = 3;
-const SEND_WINDOW_MS = 15 * 60 * 1000;
+const SEND_WINDOW_MS = 1 * 60 * 1000;
 const MAX_VERIFY_ATTEMPTS = 3;
 
 function normalizeRole(roleName) {
@@ -48,6 +48,14 @@ function parseWaitSeconds(message) {
   return match ? Number(match[1]) : null;
 }
 
+const ID_PROOF_TYPES = [
+  { value: 1, label: "India — Aadhaar" },
+  { value: 2, label: "Nepal — Citizenship" },
+  { value: 3, label: "Bhutan — Citizenship" },
+  { value: 4, label: "Passport" },
+  { value: 5, label: "Other national ID" }
+];
+
 export function AuthScreen({ onSignedIn }) {
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -63,6 +71,8 @@ export function AuthScreen({ onSignedIn }) {
   const [locating, setLocating] = useState(false);
   const [locationPicked, setLocationPicked] = useState(false);
   const [profilePreviewUri, setProfilePreviewUri] = useState(null);
+  const [idFrontPreviewUri, setIdFrontPreviewUri] = useState(null);
+  const [idBackPreviewUri, setIdBackPreviewUri] = useState(null);
   const [form, setForm] = useState({
     name: "",
     alternateContactNumber: "",
@@ -75,7 +85,9 @@ export function AuthScreen({ onSignedIn }) {
     pincode: "",
     latitude: "",
     longitude: "",
-    aadharNumber: "",
+    idProofType: 1,
+    idProofFrontImage: "",
+    idProofBackImage: "",
     profileImage: ""
   });
 
@@ -127,39 +139,97 @@ export function AuthScreen({ onSignedIn }) {
     setVerifyAttemptsLeft(MAX_VERIFY_ATTEMPTS);
     setLocationPicked(false);
     setProfilePreviewUri(null);
-    setForm(current => ({ ...current, profileImage: "", latitude: "", longitude: "" }));
+    setIdFrontPreviewUri(null);
+    setIdBackPreviewUri(null);
+    setForm(current => ({
+      ...current,
+      profileImage: "",
+      idProofFrontImage: "",
+      idProofBackImage: "",
+      latitude: "",
+      longitude: ""
+    }));
+  }
+
+  async function pickImageAsDataUri({ allowsEditing = false, aspect } = {}) {
+    return new Promise(resolve => {
+      Alert.alert("Add photo", "Choose source", [
+        {
+          text: "Camera",
+          onPress: async () => {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) {
+              Alert.alert("Permission needed", "Allow camera access to take a photo.");
+              resolve(null);
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing,
+              aspect,
+              quality: 0.55,
+              base64: true
+            });
+            if (result.canceled || !result.assets?.length || !result.assets[0].base64) {
+              resolve(null);
+              return;
+            }
+            const asset = result.assets[0];
+            resolve({
+              uri: asset.uri,
+              dataUri: `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
+            });
+          }
+        },
+        {
+          text: "Gallery",
+          onPress: async () => {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+              Alert.alert("Permission needed", "Allow photo library access.");
+              resolve(null);
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing,
+              aspect,
+              quality: 0.55,
+              base64: true
+            });
+            if (result.canceled || !result.assets?.length || !result.assets[0].base64) {
+              resolve(null);
+              return;
+            }
+            const asset = result.assets[0];
+            resolve({
+              uri: asset.uri,
+              dataUri: `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
+            });
+          }
+        },
+        { text: "Cancel", style: "cancel", onPress: () => resolve(null) }
+      ]);
+    });
   }
 
   async function pickProfileImage() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        "Permission needed",
-        "Allow photo library access to upload a profile image."
-      );
-      return;
+    const picked = await pickImageAsDataUri({ allowsEditing: true, aspect: [1, 1] });
+    if (!picked) return;
+    setProfilePreviewUri(picked.uri);
+    update("profileImage", picked.dataUri);
+  }
+
+  async function pickIdProof(side) {
+    const picked = await pickImageAsDataUri();
+    if (!picked) return;
+    if (side === "front") {
+      setIdFrontPreviewUri(picked.uri);
+      update("idProofFrontImage", picked.dataUri);
+    } else {
+      setIdBackPreviewUri(picked.uri);
+      update("idProofBackImage", picked.dataUri);
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.45,
-      base64: true
-    });
-
-    if (result.canceled || !result.assets?.length) return;
-
-    const asset = result.assets[0];
-    const mime = asset.mimeType || "image/jpeg";
-    if (!asset.base64) {
-      Alert.alert("Image error", "Could not read the selected image. Please try again.");
-      return;
-    }
-
-    const dataUri = `data:${mime};base64,${asset.base64}`;
-    setProfilePreviewUri(asset.uri);
-    update("profileImage", dataUri);
   }
 
   async function sendOtp({ isResend = false } = {}) {
@@ -173,7 +243,7 @@ export function AuthScreen({ onSignedIn }) {
     if (recent.length >= MAX_OTP_SENDS) {
       Alert.alert(
         "OTP limit reached",
-        "Too many OTP requests. Please try again after 15 minutes."
+        "Too many OTP requests. Please try again after 1 minute."
       );
       setSendHistory(recent);
       return;
@@ -299,8 +369,11 @@ export function AuthScreen({ onSignedIn }) {
         Alert.alert("Country required", "Please enter your country.");
         return;
       }
-      if (!/^\d{12}$/.test(form.aadharNumber)) {
-        Alert.alert("Aadhar required", "Aadhar number is mandatory. Enter a valid 12-digit number.");
+      if (!form.idProofFrontImage) {
+        Alert.alert(
+          "ID proof required",
+          "Upload a clear photo of your ID document (front). Partners from India, Nepal, and Bhutan are supported."
+        );
         return;
       }
       const lat = Number(form.latitude);
@@ -352,7 +425,9 @@ export function AuthScreen({ onSignedIn }) {
         pincode: form.pincode || null,
         latitude: Number(form.latitude || 0),
         longitude: Number(form.longitude || 0),
-        aadharNumber: form.aadharNumber
+        idProofType: Number(form.idProofType || 1),
+        idProofFrontImage: form.idProofFrontImage,
+        idProofBackImage: form.idProofBackImage || null
       });
 
       Alert.alert(
@@ -416,7 +491,7 @@ export function AuthScreen({ onSignedIn }) {
                 Use a WhatsApp-enabled mobile number to register. OTP is sent to this number.
               </Text>
               <Text style={styles.listSub}>
-                Limits: 1 OTP every 15 seconds · max 3 OTPs every 15 minutes.
+                Limits: 1 OTP every 15 seconds · max 3 OTPs every 1 minute.
               </Text>
               <Button
                 title="Send OTP"
@@ -426,7 +501,7 @@ export function AuthScreen({ onSignedIn }) {
               />
               {recentSendCount >= MAX_OTP_SENDS ? (
                 <Text style={[styles.listSub, { color: colors.danger, marginTop: 8 }]}>
-                  Too many OTP requests for this number. Try again after 15 minutes.
+                  Too many OTP requests for this number. Try again after 1 minute.
                 </Text>
               ) : null}
             </View>
@@ -575,15 +650,70 @@ export function AuthScreen({ onSignedIn }) {
                       onChangeText={value => update("country", value)}
                     />
                   </View>
-                  <Field
-                    label="Aadhar Number *"
-                    value={form.aadharNumber}
-                    onChangeText={value =>
-                      update("aadharNumber", value.replace(/\D/g, "").slice(0, 12))
-                    }
-                    keyboardType="number-pad"
-                  />
-                  <Text style={styles.listSub}>Workshop address and Aadhar are mandatory.</Text>
+                  <Text style={styles.label}>ID proof type *</Text>
+                  <View style={styles.rowWrap}>
+                    {ID_PROOF_TYPES.map(opt => (
+                      <Chip
+                        key={opt.value}
+                        label={opt.label}
+                        active={Number(form.idProofType) === opt.value}
+                        onPress={() => update("idProofType", opt.value)}
+                      />
+                    ))}
+                  </View>
+
+                  <Text style={styles.label}>ID proof — front *</Text>
+                  <View style={styles.profileImageRow}>
+                    <View style={styles.profileImagePreview}>
+                      {idFrontPreviewUri ? (
+                        <Image source={{ uri: idFrontPreviewUri }} style={styles.profileImage} />
+                      ) : (
+                        <Text style={styles.profileImagePlaceholder}>Front</Text>
+                      )}
+                    </View>
+                    <View style={styles.flex}>
+                      <Button title="Upload front" compact onPress={() => pickIdProof("front")} />
+                      {form.idProofFrontImage ? (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setIdFrontPreviewUri(null);
+                            update("idProofFrontImage", "");
+                          }}
+                        >
+                          <Text style={[styles.linkText, { marginTop: 8 }]}>Remove</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  <Text style={styles.label}>ID proof — back (optional)</Text>
+                  <View style={styles.profileImageRow}>
+                    <View style={styles.profileImagePreview}>
+                      {idBackPreviewUri ? (
+                        <Image source={{ uri: idBackPreviewUri }} style={styles.profileImage} />
+                      ) : (
+                        <Text style={styles.profileImagePlaceholder}>Back</Text>
+                      )}
+                    </View>
+                    <View style={styles.flex}>
+                      <Button title="Upload back" compact onPress={() => pickIdProof("back")} />
+                      {form.idProofBackImage ? (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setIdBackPreviewUri(null);
+                            update("idProofBackImage", "");
+                          }}
+                        >
+                          <Text style={[styles.linkText, { marginTop: 8 }]}>Remove</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  <Text style={styles.listSub}>
+                    Upload a clear ID photo (Aadhaar / Nepal citizenship / Bhutan ID / passport).
+                    Workshop address and ID proof are mandatory.
+                  </Text>
 
                   <Text style={styles.label}>Workshop location *</Text>
                   <View style={styles.locationSummary}>
@@ -608,21 +738,11 @@ export function AuthScreen({ onSignedIn }) {
                               ...current,
                               latitude: String(coords.latitude),
                               longitude: String(coords.longitude),
-                              city: current.city?.trim()
-                                ? current.city
-                                : hint?.city || "",
-                              state: current.state?.trim()
-                                ? current.state
-                                : hint?.state || "",
-                              country: current.country?.trim()
-                                ? current.country
-                                : hint?.country || "India",
-                              pincode: current.pincode?.trim()
-                                ? current.pincode
-                                : hint?.pincode || "",
-                              address: current.address?.trim()
-                                ? current.address
-                                : hint?.addressLine || hint?.displayName || ""
+                              city: hint?.city || "",
+                              state: hint?.state || "",
+                              country: hint?.country || "India",
+                              pincode: hint?.pincode || "",
+                              address: hint?.addressLine || hint?.displayName || ""
                             }));
                             setLocationPicked(true);
                           } catch (error) {
@@ -669,17 +789,11 @@ export function AuthScreen({ onSignedIn }) {
             ...current,
             latitude: String(latitude),
             longitude: String(longitude),
-            city: current.city?.trim() ? current.city : addressHint?.city || "",
-            state: current.state?.trim() ? current.state : addressHint?.state || "",
-            country: current.country?.trim()
-              ? current.country
-              : addressHint?.country || "India",
-            pincode: current.pincode?.trim()
-              ? current.pincode
-              : addressHint?.pincode || "",
-            address: current.address?.trim()
-              ? current.address
-              : addressHint?.addressLine || addressHint?.displayName || ""
+            city: addressHint?.city || "",
+            state: addressHint?.state || "",
+            country: addressHint?.country || "India",
+            pincode: addressHint?.pincode || "",
+            address: addressHint?.addressLine || addressHint?.displayName || ""
           }));
           setLocationPicked(true);
           setMapVisible(false);

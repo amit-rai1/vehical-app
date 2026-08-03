@@ -1048,6 +1048,70 @@ export const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: "#e2e8f0"
   },
+  jobCardCta: {
+    marginTop: 10
+  },
+  partnerInfoCard: {
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "#f5f3ff",
+    borderWidth: 1,
+    borderColor: "#ddd6fe"
+  },
+  primaryCta: {
+    marginTop: 14,
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16
+  },
+  primaryCtaText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 15
+  },
+  secondaryCta: {
+    marginTop: 10,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14
+  },
+  secondaryCtaText: {
+    color: colors.primary,
+    fontWeight: "800",
+    fontSize: 14
+  },
+  feedbackBox: {
+    marginTop: 14,
+    paddingTop: 8
+  },
+  starRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 14
+  },
+  starButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  starGlyph: {
+    fontSize: 28,
+    color: "#cbd5e1"
+  },
+  starGlyphActive: {
+    color: "#f59e0b"
+  },
   tabButtonActive: {
     backgroundColor: "#f5f3ff",
     borderRadius: 14

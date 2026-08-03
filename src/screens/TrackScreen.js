@@ -1,12 +1,17 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Linking,
   RefreshControl,
   ScrollView,
   Text,
+  TextInput,
+  TouchableOpacity,
   View
 } from "react-native";
-import { bookingApi } from "../api/client";
+import { bookingApi, feedbackApi } from "../api/client";
+import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
@@ -27,6 +32,10 @@ function statusIndex(status, partnerId) {
   return 0;
 }
 
+function isCompleted(status) {
+  return status === 4 || status === "Completed";
+}
+
 function formatWhen(value) {
   if (!value) return "—";
   try {
@@ -41,10 +50,36 @@ function formatWhen(value) {
   }
 }
 
+function StarPicker({ rating, onChange }) {
+  return (
+    <View style={styles.starRow}>
+      {[1, 2, 3, 4, 5].map(star => {
+        const active = rating >= star;
+        return (
+          <TouchableOpacity
+            key={star}
+            onPress={() => onChange(star)}
+            style={styles.starButton}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.starGlyph, active && styles.starGlyphActive]}>
+              {active ? "★" : "☆"}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 export function TrackScreen({ refreshKey }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [ratingBookingId, setRatingBookingId] = useState(null);
+  const [rating, setRating] = useState(5);
+  const [comments, setComments] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   const loadBookings = useCallback(async () => {
     try {
@@ -65,6 +100,48 @@ export function TrackScreen({ refreshKey }) {
     setLoading(true);
     loadBookings();
   }, [loadBookings, refreshKey]);
+
+  async function callPartner(mobile) {
+    if (!mobile) {
+      Alert.alert("No phone", "Partner mobile is not available yet.");
+      return;
+    }
+    const tel = `tel:+91${String(mobile).replace(/\D/g, "")}`;
+    try {
+      await Linking.openURL(tel);
+    } catch {
+      Alert.alert("Unable to call", "Could not open the phone dialer.");
+    }
+  }
+
+  function openRateForm(bookingId) {
+    setRatingBookingId(bookingId);
+    setRating(5);
+    setComments("");
+  }
+
+  async function submitFeedback(bookingId) {
+    if (rating < 1 || rating > 5) {
+      Alert.alert("Rating required", "Please choose 1 to 5 stars.");
+      return;
+    }
+    setSubmittingFeedback(true);
+    try {
+      await feedbackApi.submit({
+        bookingId,
+        rating,
+        comments: comments.trim() || null
+      });
+      Alert.alert("Thank you", "Your feedback was submitted.");
+      setRatingBookingId(null);
+      setComments("");
+      await loadBookings();
+    } catch (error) {
+      Alert.alert("Feedback failed", error.message || "Please try again.");
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -89,7 +166,7 @@ export function TrackScreen({ refreshKey }) {
         />
       }
     >
-      <Header title="Track Service" subtitle="Live status for your bookings." />
+      <Header title="Track Service" subtitle="Live status, partner details, and ratings." />
 
       {bookings.length === 0 ? (
         <View style={styles.emptyCard}>
@@ -102,6 +179,10 @@ export function TrackScreen({ refreshKey }) {
         bookings.map(booking => {
           const activeIndex = statusIndex(booking.status, booking.partnerId);
           const cancelled = booking.status === 5 || booking.status === "Cancelled";
+          const completed = isCompleted(booking.status);
+          const showRate = completed && !booking.hasFeedback;
+          const isRatingThis = ratingBookingId === booking.bookingId;
+
           return (
             <View key={booking.bookingId} style={styles.panel}>
               <Text style={styles.panelTitle}>{booking.planName || "Service booking"}</Text>
@@ -111,17 +192,38 @@ export function TrackScreen({ refreshKey }) {
               <Text style={styles.listSub}>
                 {formatWhen(booking.scheduledAt)} · {booking.addressSummary || "Address"}
               </Text>
-              <Text style={styles.listSub}>
-                {booking.partnerName
-                  ? `Partner: ${booking.partnerName}`
-                  : "Partner: awaiting assignment"}
-              </Text>
+
+              <View style={styles.partnerInfoCard}>
+                {booking.partnerName || booking.partnerId ? (
+                  <>
+                    <Text style={styles.listTitle}>
+                      Partner: {booking.partnerName || "Assigned"}
+                    </Text>
+                    <Text style={styles.listSub}>
+                      Mobile: {booking.partnerMobile ? `+91 ${booking.partnerMobile}` : "—"}
+                    </Text>
+                    {booking.partnerMobile ? (
+                      <TouchableOpacity
+                        style={styles.secondaryCta}
+                        onPress={() => callPartner(booking.partnerMobile)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.secondaryCtaText}>Call partner</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </>
+                ) : (
+                  <Text style={styles.listSub}>Partner: awaiting assignment</Text>
+                )}
+              </View>
+
               {booking.startedAt ? (
                 <Text style={styles.listSub}>Started: {formatWhen(booking.startedAt)}</Text>
               ) : null}
               {booking.completedAt ? (
                 <Text style={styles.listSub}>Completed: {formatWhen(booking.completedAt)}</Text>
               ) : null}
+
               {cancelled ? (
                 <Text style={[styles.listTitle, { color: colors.danger, marginTop: 12 }]}>
                   Cancelled
@@ -150,6 +252,56 @@ export function TrackScreen({ refreshKey }) {
                   ))}
                 </View>
               )}
+
+              {completed && booking.hasFeedback ? (
+                <Text style={[styles.listSub, { marginTop: 12 }]}>
+                  Thanks — you already rated this service.
+                </Text>
+              ) : null}
+
+              {showRate && !isRatingThis ? (
+                <TouchableOpacity
+                  style={styles.primaryCta}
+                  onPress={() => openRateForm(booking.bookingId)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryCtaText}>Rate this service</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {isRatingThis ? (
+                <View style={styles.feedbackBox}>
+                  <Text style={styles.panelTitle}>Your rating</Text>
+                  <StarPicker rating={rating} onChange={setRating} />
+                  <Text style={styles.label}>Feedback message</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={comments}
+                    onChangeText={setComments}
+                    placeholder="How was the service?"
+                    placeholderTextColor="#9a9dad"
+                    multiline
+                  />
+                  <View style={styles.row}>
+                    <View style={styles.flex}>
+                      <Button
+                        title="Cancel"
+                        variant="ghost"
+                        onPress={() => setRatingBookingId(null)}
+                        disabled={submittingFeedback}
+                      />
+                    </View>
+                    <View style={styles.flex}>
+                      <Button
+                        title={submittingFeedback ? "Sending..." : "Submit feedback"}
+                        onPress={() => submitFeedback(booking.bookingId)}
+                        disabled={submittingFeedback}
+                        loading={submittingFeedback}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ) : null}
             </View>
           );
         })

@@ -114,17 +114,11 @@ export function AddressesScreen() {
       ...current,
       latitude: String(latitude),
       longitude: String(longitude),
-      city: current.city?.trim() ? current.city : addressHint?.city || current.city,
-      state: current.state?.trim() ? current.state : addressHint?.state || current.state,
-      country: current.country?.trim()
-        ? current.country
-        : addressHint?.country || current.country || "India",
-      pincode: current.pincode?.trim()
-        ? current.pincode
-        : addressHint?.pincode || current.pincode,
-      addressLine1: current.addressLine1?.trim()
-        ? current.addressLine1
-        : addressHint?.addressLine || addressHint?.displayName || current.addressLine1
+      city: addressHint?.city || "",
+      state: addressHint?.state || "",
+      country: addressHint?.country || "India",
+      pincode: addressHint?.pincode || "",
+      addressLine1: addressHint?.addressLine || addressHint?.displayName || ""
     }));
   }
 

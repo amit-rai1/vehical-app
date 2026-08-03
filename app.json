@@ -12,8 +12,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We use your location to set workshop and service pickup pins on the map.",
-        "NSPhotoLibraryUsageDescription": "We use your photos so you can set a profile image during registration."
-      }
+        "NSPhotoLibraryUsageDescription": "We use your photos for profile images, ID proof, and service completion photos.",
+        "NSCameraUsageDescription": "We use the camera so partners can take ID proof and service completion photos.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.anonymous.vehicleservicemobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +24,12 @@
       },
       "package": "com.anonymous.vehicleservicemobile",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "READ_MEDIA_IMAGES",
-        "READ_EXTERNAL_STORAGE"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -37,7 +42,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Vehicle Service to access your photos for profile image upload."
+          "photosPermission": "Allow Vehicle Service to access your photos for profile, ID proof, and service images.",
+          "cameraPermission": "Allow Vehicle Service to use the camera for ID proof and service completion photos."
         }
       ]
     ],

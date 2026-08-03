@@ -48,14 +48,6 @@ function parseWaitSeconds(message) {
   return match ? Number(match[1]) : null;
 }
 
-const ID_PROOF_TYPES = [
-  { value: 1, label: "India — Aadhaar" },
-  { value: 2, label: "Nepal — Citizenship" },
-  { value: 3, label: "Bhutan — Citizenship" },
-  { value: 4, label: "Passport" },
-  { value: 5, label: "Other national ID" }
-];
-
 export function AuthScreen({ onSignedIn }) {
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -71,8 +63,6 @@ export function AuthScreen({ onSignedIn }) {
   const [locating, setLocating] = useState(false);
   const [locationPicked, setLocationPicked] = useState(false);
   const [profilePreviewUri, setProfilePreviewUri] = useState(null);
-  const [idFrontPreviewUri, setIdFrontPreviewUri] = useState(null);
-  const [idBackPreviewUri, setIdBackPreviewUri] = useState(null);
   const [form, setForm] = useState({
     name: "",
     alternateContactNumber: "",
@@ -85,9 +75,7 @@ export function AuthScreen({ onSignedIn }) {
     pincode: "",
     latitude: "",
     longitude: "",
-    idProofType: 1,
-    idProofFrontImage: "",
-    idProofBackImage: "",
+    idProofNumber: "",
     profileImage: ""
   });
 
@@ -139,13 +127,10 @@ export function AuthScreen({ onSignedIn }) {
     setVerifyAttemptsLeft(MAX_VERIFY_ATTEMPTS);
     setLocationPicked(false);
     setProfilePreviewUri(null);
-    setIdFrontPreviewUri(null);
-    setIdBackPreviewUri(null);
     setForm(current => ({
       ...current,
       profileImage: "",
-      idProofFrontImage: "",
-      idProofBackImage: "",
+      idProofNumber: "",
       latitude: "",
       longitude: ""
     }));
@@ -218,18 +203,6 @@ export function AuthScreen({ onSignedIn }) {
     if (!picked) return;
     setProfilePreviewUri(picked.uri);
     update("profileImage", picked.dataUri);
-  }
-
-  async function pickIdProof(side) {
-    const picked = await pickImageAsDataUri();
-    if (!picked) return;
-    if (side === "front") {
-      setIdFrontPreviewUri(picked.uri);
-      update("idProofFrontImage", picked.dataUri);
-    } else {
-      setIdBackPreviewUri(picked.uri);
-      update("idProofBackImage", picked.dataUri);
-    }
   }
 
   async function sendOtp({ isResend = false } = {}) {
@@ -369,13 +342,6 @@ export function AuthScreen({ onSignedIn }) {
         Alert.alert("Country required", "Please enter your country.");
         return;
       }
-      if (!form.idProofFrontImage) {
-        Alert.alert(
-          "ID proof required",
-          "Upload a clear photo of your ID document (front). Partners from India, Nepal, and Bhutan are supported."
-        );
-        return;
-      }
       const lat = Number(form.latitude);
       const lng = Number(form.longitude);
       if (!locationPicked || !Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) {
@@ -425,9 +391,7 @@ export function AuthScreen({ onSignedIn }) {
         pincode: form.pincode || null,
         latitude: Number(form.latitude || 0),
         longitude: Number(form.longitude || 0),
-        idProofType: Number(form.idProofType || 1),
-        idProofFrontImage: form.idProofFrontImage,
-        idProofBackImage: form.idProofBackImage || null
+        idProofNumber: form.idProofNumber.trim() || null
       });
 
       Alert.alert(
@@ -650,69 +614,15 @@ export function AuthScreen({ onSignedIn }) {
                       onChangeText={value => update("country", value)}
                     />
                   </View>
-                  <Text style={styles.label}>ID proof type *</Text>
-                  <View style={styles.rowWrap}>
-                    {ID_PROOF_TYPES.map(opt => (
-                      <Chip
-                        key={opt.value}
-                        label={opt.label}
-                        active={Number(form.idProofType) === opt.value}
-                        onPress={() => update("idProofType", opt.value)}
-                      />
-                    ))}
-                  </View>
-
-                  <Text style={styles.label}>ID proof — front *</Text>
-                  <View style={styles.profileImageRow}>
-                    <View style={styles.profileImagePreview}>
-                      {idFrontPreviewUri ? (
-                        <Image source={{ uri: idFrontPreviewUri }} style={styles.profileImage} />
-                      ) : (
-                        <Text style={styles.profileImagePlaceholder}>Front</Text>
-                      )}
-                    </View>
-                    <View style={styles.flex}>
-                      <Button title="Upload front" compact onPress={() => pickIdProof("front")} />
-                      {form.idProofFrontImage ? (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setIdFrontPreviewUri(null);
-                            update("idProofFrontImage", "");
-                          }}
-                        >
-                          <Text style={[styles.linkText, { marginTop: 8 }]}>Remove</Text>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-                  </View>
-
-                  <Text style={styles.label}>ID proof — back (optional)</Text>
-                  <View style={styles.profileImageRow}>
-                    <View style={styles.profileImagePreview}>
-                      {idBackPreviewUri ? (
-                        <Image source={{ uri: idBackPreviewUri }} style={styles.profileImage} />
-                      ) : (
-                        <Text style={styles.profileImagePlaceholder}>Back</Text>
-                      )}
-                    </View>
-                    <View style={styles.flex}>
-                      <Button title="Upload back" compact onPress={() => pickIdProof("back")} />
-                      {form.idProofBackImage ? (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setIdBackPreviewUri(null);
-                            update("idProofBackImage", "");
-                          }}
-                        >
-                          <Text style={[styles.linkText, { marginTop: 8 }]}>Remove</Text>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-                  </View>
-
+                  <Field
+                    label="Id proof number (optional)"
+                    value={form.idProofNumber}
+                    onChangeText={value => update("idProofNumber", value)}
+                    autoCapitalize="characters"
+                    maxLength={50}
+                  />
                   <Text style={styles.listSub}>
-                    Upload a clear ID photo (Aadhaar / Nepal citizenship / Bhutan ID / passport).
-                    Workshop address and ID proof are mandatory.
+                    Workshop address and location are mandatory. Id proof number is optional.
                   </Text>
 
                   <Text style={styles.label}>Workshop location *</Text>

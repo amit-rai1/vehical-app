@@ -57,9 +57,19 @@ function addMonths(date, delta) {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
+function buildCountMap(dates) {
+  const map = {};
+  for (const value of dates || []) {
+    const key = toYmdKey(value);
+    if (!key) continue;
+    map[key] = (map[key] || 0) + 1;
+  }
+  return map;
+}
+
 /**
  * Plan window calendar. Marks completed / scheduled days.
- * Optional onSelectDate for booking (only dates in range, not past if disablePast).
+ * Multiple services on one day show a count badge.
  */
 export function PlanCalendar({
   startDate,
@@ -74,24 +84,12 @@ export function PlanCalendar({
   const rangeEnd = toDateOnly(endDate);
   const [month, setMonth] = useState(() => startOfMonth(rangeStart || new Date()));
 
-  const completedSet = useMemo(
-    () =>
-      new Set(
-        (completedDates || []).map(toYmdKey).filter(Boolean)
-      ),
-    [completedDates]
-  );
-  const scheduledSet = useMemo(
-    () =>
-      new Set(
-        (scheduledDates || []).map(toYmdKey).filter(Boolean)
-      ),
-    [scheduledDates]
-  );
+  const completedCounts = useMemo(() => buildCountMap(completedDates), [completedDates]);
+  const scheduledCounts = useMemo(() => buildCountMap(scheduledDates), [scheduledDates]);
 
   const days = useMemo(() => {
     const first = startOfMonth(month);
-    const startWeekday = first.getDay(); // 0 Sun
+    const startWeekday = first.getDay();
     const cells = [];
     for (let i = 0; i < startWeekday; i += 1) cells.push(null);
     const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
@@ -137,12 +135,15 @@ export function PlanCalendar({
       <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
         {days.map((date, idx) => {
           if (!date) {
-            return <View key={`e-${idx}`} style={{ width: "14.28%", height: 40 }} />;
+            return <View key={`e-${idx}`} style={{ width: "14.28%", height: 44 }} />;
           }
           const key = ymd(date);
           const selectable = inRange(date) && !isPast(date) && !!onSelectDate;
-          const completed = completedSet.has(key);
-          const scheduled = scheduledSet.has(key);
+          const completedCount = completedCounts[key] || 0;
+          const scheduledCount = scheduledCounts[key] || 0;
+          const completed = completedCount > 0;
+          const scheduled = !completed && scheduledCount > 0;
+          const badge = completedCount > 1 ? completedCount : scheduledCount > 1 ? scheduledCount : 0;
           const selected = selectedDate && ymd(toDateOnly(selectedDate)) === key;
           const muted = !inRange(date);
 
@@ -153,7 +154,7 @@ export function PlanCalendar({
               onPress={() => onSelectDate?.(key)}
               style={{
                 width: "14.28%",
-                height: 40,
+                height: 44,
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: 8,
@@ -175,13 +176,27 @@ export function PlanCalendar({
               >
                 {date.getDate()}
               </Text>
+              {badge > 0 ? (
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: "800",
+                    color: selected ? "#e0e7ff" : completed ? "#166534" : "#3730a3",
+                    marginTop: -1
+                  }}
+                >
+                  ×{badge}
+                </Text>
+              ) : null}
             </TouchableOpacity>
           );
         })}
       </View>
 
       <View style={{ marginTop: 10, gap: 4 }}>
-        <Text style={styles.listSub}>Green = completed · Blue tint = scheduled</Text>
+        <Text style={styles.listSub}>
+          Green = completed · Blue = scheduled · ×N = services that day
+        </Text>
         {rangeStart && rangeEnd ? (
           <Text style={styles.listSub}>
             Bookable: {rangeStart.toLocaleDateString("en-IN")} –{" "}

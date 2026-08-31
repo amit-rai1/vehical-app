@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBar, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import * as SplashScreen from "expo-splash-screen";
 import { clearAuthToken } from "./src/api/client";
 import { BottomTabs } from "./src/components/BottomTabs";
 import { AuthScreen } from "./src/screens/AuthScreen";
@@ -19,6 +20,8 @@ import { VehiclesScreen } from "./src/screens/VehiclesScreen";
 import { styles } from "./src/styles/appStyles";
 import { colors } from "./src/theme";
 import { FeedbackProvider } from "./src/feedback";
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function isPartner(user) {
   return String(user?.roleName || "").toLowerCase().includes("partner");
@@ -274,8 +277,23 @@ function AppShell() {
 }
 
 export default function App() {
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    setAppReady(true);
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (!appReady) return;
+    await SplashScreen.hideAsync().catch(() => {});
+  }, [appReady]);
+
+  if (!appReady) {
+    return null;
+  }
+
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider onLayout={onLayoutRootView}>
       <FeedbackProvider>
         <AppShell />
       </FeedbackProvider>

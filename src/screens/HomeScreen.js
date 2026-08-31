@@ -481,7 +481,7 @@ export function HomeScreen({
                       <Text style={[styles.listSub, { marginBottom: 8 }]}>
                         Completed: {detail.completedServicesCount ??
                           (detail.completedServiceDates || []).length}{" "}
-                        · Scheduled: {(detail.scheduledServiceDates || []).length}
+                        services · Scheduled: {(detail.scheduledServiceDates || []).length}
                       </Text>
                       <PlanCalendar
                         startDate={detail.startDate}

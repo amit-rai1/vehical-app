@@ -5,6 +5,14 @@ import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { useFeedback } from "../feedback";
 import { styles } from "../styles/appStyles";
+import {
+  PREFERRED_HOURS_12,
+  PREFERRED_MINUTES,
+  defaultPreferredTime,
+  formatPreferredTime12,
+  pad2,
+  toHHmm24
+} from "../utils/preferredTime";
 
 function vehicleTypeLabel(type) {
   const value = String(type ?? "");
@@ -23,12 +31,6 @@ function sameVehicleType(a, b) {
   return normalize(a) === normalize(b);
 }
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8..19
-
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
 export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
   const { showLoading, hideLoading, error, info } = useFeedback();
   const [plans, setPlans] = useState([]);
@@ -37,13 +39,15 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
   const [addresses, setAddresses] = useState([]);
   const [vehicleId, setVehicleId] = useState(null);
   const [addressId, setAddressId] = useState(null);
-  const [hour, setHour] = useState(10);
-  const [minute, setMinute] = useState(0);
+  const [hour12, setHour12] = useState(defaultPreferredTime().hour12);
+  const [minute, setMinute] = useState(defaultPreferredTime().minute);
+  const [meridiem, setMeridiem] = useState(defaultPreferredTime().meridiem);
   const [creatingOrder, setCreatingOrder] = useState(false);
 
   const serviceName = service?.raw?.name || service?.title || "Service plan";
   const serviceVehicleType = service?.raw?.vehicleType;
   const typeLabel = vehicleTypeLabel(serviceVehicleType);
+  const timeLabel = formatPreferredTime12({ hour12, minute, meridiem });
 
   useEffect(() => {
     const rawPlans = Array.isArray(service?.raw?.plans) ? service.raw.plans : [];
@@ -117,7 +121,7 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
     setCreatingOrder(true);
     showLoading("Starting payment…");
     try {
-      const preferredServiceTime = `${pad2(hour)}:${pad2(minute)}`;
+      const preferredServiceTime = toHHmm24({ hour12, minute, meridiem });
       const body = {
         servicePlanId: selectedPlan.id || selectedPlan.servicePlanId,
         vehicleId,
@@ -230,23 +234,26 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>4. Preferred service time</Text>
         <Text style={styles.listSub}>Used for every booking on this plan.</Text>
-        <Text style={[styles.listSub, { marginTop: 8 }]}>Hour</Text>
+        <Text style={[styles.listTitle, { marginTop: 10 }]}>{timeLabel}</Text>
+
+        <Text style={[styles.listSub, { marginTop: 12 }]}>Hour</Text>
         <View style={styles.rowWrap}>
-          {HOURS.map(h => (
+          {PREFERRED_HOURS_12.map(h => (
             <TouchableOpacity
               key={h}
-              onPress={() => setHour(h)}
-              style={[styles.chip, hour === h && styles.activeChip]}
+              onPress={() => setHour12(h)}
+              style={[styles.chip, hour12 === h && styles.activeChip]}
             >
-              <Text style={[styles.chipText, hour === h && styles.activeChipText]}>
+              <Text style={[styles.chipText, hour12 === h && styles.activeChipText]}>
                 {pad2(h)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
+
         <Text style={[styles.listSub, { marginTop: 8 }]}>Minutes</Text>
         <View style={styles.rowWrap}>
-          {[0, 15, 30, 45].map(m => (
+          {PREFERRED_MINUTES.map(m => (
             <TouchableOpacity
               key={m}
               onPress={() => setMinute(m)}
@@ -258,9 +265,21 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={[styles.listTitle, { marginTop: 8 }]}>
-          {pad2(hour)}:{pad2(minute)}
-        </Text>
+
+        <Text style={[styles.listSub, { marginTop: 8 }]}>AM / PM</Text>
+        <View style={styles.rowWrap}>
+          {["AM", "PM"].map(period => (
+            <TouchableOpacity
+              key={period}
+              onPress={() => setMeridiem(period)}
+              style={[styles.chip, meridiem === period && styles.activeChip]}
+            >
+              <Text style={[styles.chipText, meridiem === period && styles.activeChipText]}>
+                {period}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={styles.row}>

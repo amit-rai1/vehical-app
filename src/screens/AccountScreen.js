@@ -293,39 +293,6 @@ export function AccountScreen({
 
           {!partner ? (
             <>
-              <Section title="Shortcuts">
-                <View style={styles.quickGrid}>
-                  <TouchableOpacity
-                    style={styles.quickAction}
-                    onPress={() => onNavigate?.("vehicles")}
-                  >
-                    <Text style={styles.quickIcon}>🚗</Text>
-                    <Text style={styles.quickText}>Vehicles</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.quickAction}
-                    onPress={() => onNavigate?.("addresses")}
-                  >
-                    <Text style={styles.quickIcon}>📍</Text>
-                    <Text style={styles.quickText}>Addresses</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.quickAction}
-                    onPress={() => onNavigate?.("help")}
-                  >
-                    <Text style={styles.quickIcon}>💬</Text>
-                    <Text style={styles.quickText}>Help</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.quickAction}
-                    onPress={() => onNavigate?.("track")}
-                  >
-                    <Text style={styles.quickIcon}>◎</Text>
-                    <Text style={styles.quickText}>Track</Text>
-                  </TouchableOpacity>
-                </View>
-              </Section>
-
               <Section title="My plans" actionLabel="Book" onAction={() => onNavigate?.("booking")}>
                 {plans.length === 0 ? (
                   <EmptyLine text="No plans yet." />

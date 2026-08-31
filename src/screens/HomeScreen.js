@@ -460,7 +460,7 @@ export function HomeScreen({
               )}
               <View style={styles.progressMeta}>
                 <Text style={styles.listSub}>
-                  {remaining} of {total} services left · Used {plan.servicesUsed || 0}/{total}
+                  {remaining} of {total} services left · Booked {plan.servicesUsed || 0}/{total}
                 </Text>
               </View>
 
@@ -477,12 +477,19 @@ export function HomeScreen({
               {expandedPlanId === plan.planId ? (
                 <View style={{ marginTop: 10 }}>
                   {detail ? (
-                    <PlanCalendar
-                      startDate={detail.startDate}
-                      endDate={detail.endDate}
-                      completedDates={detail.completedServiceDates}
-                      scheduledDates={detail.scheduledServiceDates}
-                    />
+                    <>
+                      <Text style={[styles.listSub, { marginBottom: 8 }]}>
+                        Completed: {detail.completedServicesCount ??
+                          (detail.completedServiceDates || []).length}{" "}
+                        · Scheduled: {(detail.scheduledServiceDates || []).length}
+                      </Text>
+                      <PlanCalendar
+                        startDate={detail.startDate}
+                        endDate={detail.endDate}
+                        completedDates={detail.completedServiceDates}
+                        scheduledDates={detail.scheduledServiceDates}
+                      />
+                    </>
                   ) : (
                     <ActivityIndicator color={colors.primary} />
                   )}

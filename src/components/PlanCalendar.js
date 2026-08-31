@@ -2,10 +2,39 @@ import React, { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles/appStyles";
 
+function toYmdKey(value) {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+    const dt = new Date(value);
+    if (!Number.isNaN(dt.getTime())) {
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    }
+    return null;
+  }
+  if (typeof value === "object") {
+    const y = value.year ?? value.Year;
+    const m = value.month ?? value.Month;
+    const d = value.day ?? value.Day;
+    if (y != null && m != null && d != null) {
+      return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    }
+  }
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return null;
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
 function toDateOnly(value) {
   if (!value) return null;
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
     const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  if (typeof value === "object" && (value.year != null || value.Year != null)) {
+    const y = value.year ?? value.Year;
+    const m = value.month ?? value.Month;
+    const d = value.day ?? value.Day;
     return new Date(y, m - 1, d);
   }
   const dt = new Date(value);
@@ -46,11 +75,17 @@ export function PlanCalendar({
   const [month, setMonth] = useState(() => startOfMonth(rangeStart || new Date()));
 
   const completedSet = useMemo(
-    () => new Set((completedDates || []).map(d => String(d).slice(0, 10))),
+    () =>
+      new Set(
+        (completedDates || []).map(toYmdKey).filter(Boolean)
+      ),
     [completedDates]
   );
   const scheduledSet = useMemo(
-    () => new Set((scheduledDates || []).map(d => String(d).slice(0, 10))),
+    () =>
+      new Set(
+        (scheduledDates || []).map(toYmdKey).filter(Boolean)
+      ),
     [scheduledDates]
   );
 

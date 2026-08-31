@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   Text,
@@ -10,6 +8,7 @@ import {
 } from "react-native";
 import { partnerApi } from "../api/client";
 import { Header } from "../components/Header";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -99,6 +98,7 @@ export function PartnerJobsScreen({
   todayOnly = false,
   refreshKey
 }) {
+  const { showLoading, hideLoading, error } = useFeedback();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -120,6 +120,7 @@ export function PartnerJobsScreen({
       setRefreshing(false);
       return;
     }
+    showLoading("Loading jobs…");
     try {
       const response = await partnerApi.listJobs({
         pageNumber: 1,
@@ -129,15 +130,16 @@ export function PartnerJobsScreen({
       const records =
         response?.data?.records || response?.data?.items || response?.data || [];
       setJobs(Array.isArray(records) ? records : []);
-    } catch (error) {
-      console.warn("Failed to load partner jobs:", error.message);
+    } catch (err) {
+      console.warn("Failed to load partner jobs:", err.message);
       setJobs([]);
-      Alert.alert("Unable to load jobs", error.message || "Please try again.");
+      await error("Unable to load jobs", err.message || "Please try again.");
     } finally {
+      hideLoading();
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isApproved, todayOnly]);
+  }, [isApproved, todayOnly, showLoading, hideLoading, error]);
 
   useEffect(() => {
     setLoading(true);
@@ -190,11 +192,7 @@ export function PartnerJobsScreen({
         ) : null}
       </View>
 
-      {!isApproved ? null : loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : (
+      {!isApproved ? null : loading ? null : (
         <>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>

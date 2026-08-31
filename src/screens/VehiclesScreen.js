@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { vehicleApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
 import { Header } from "../components/Header";
 import { Select } from "../components/Select";
 import { fallbackMakes, fallbackModels } from "../constants/catalog";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -19,6 +20,7 @@ function normalizeVehicleNumber(value) {
 }
 
 export function VehiclesScreen() {
+  const { showLoading, hideLoading, success, error, info, confirm } = useFeedback();
   const [makes, setMakes] = useState(fallbackMakes);
   const [models, setModels] = useState([]);
   const [selectedMakeId, setSelectedMakeId] = useState(null);
@@ -48,8 +50,8 @@ export function VehiclesScreen() {
       if (Array.isArray(data) && data.length) {
         setMakes(data);
       }
-    } catch (error) {
-      console.warn("Failed to load makes:", error.message);
+    } catch (err) {
+      console.warn("Failed to load makes:", err.message);
     } finally {
       setLoadingMakes(false);
     }
@@ -68,8 +70,8 @@ export function VehiclesScreen() {
       if (Array.isArray(data)) {
         setModels(data);
       }
-    } catch (error) {
-      console.warn("Failed to load models:", error.message);
+    } catch (err) {
+      console.warn("Failed to load models:", err.message);
       setModels([]);
     } finally {
       setLoadingModels(false);
@@ -78,6 +80,7 @@ export function VehiclesScreen() {
 
   const loadVehicles = useCallback(async () => {
     setLoadingVehicles(true);
+    showLoading("Loading vehicles…");
     try {
       const response = await vehicleApi.list({
         pageNumber: 1,
@@ -89,13 +92,14 @@ export function VehiclesScreen() {
       });
       const data = response?.data?.records || response?.data?.items || response?.data || [];
       setVehicles(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.warn("Failed to load vehicles:", error.message);
+    } catch (err) {
+      console.warn("Failed to load vehicles:", err.message);
       setVehicles([]);
     } finally {
+      hideLoading();
       setLoadingVehicles(false);
     }
-  }, [search]);
+  }, [search, showLoading, hideLoading]);
 
   useEffect(() => {
     loadMakes();
@@ -173,15 +177,16 @@ export function VehiclesScreen() {
 
   async function saveVehicle() {
     if (!selectedMakeId) {
-      Alert.alert("Missing field", "Please select a vehicle make.");
+      await info("Missing field", "Please select a vehicle make.");
       return;
     }
     if (!selectedModelId) {
-      Alert.alert("Missing field", "Please select a vehicle model.");
+      await info("Missing field", "Please select a vehicle model.");
       return;
     }
 
     setSaving(true);
+    showLoading(editingVehicleId ? "Updating vehicle…" : "Saving vehicle…");
     try {
       const payload = {
         vehicleMakeId: selectedMakeId,
@@ -195,55 +200,55 @@ export function VehiclesScreen() {
 
       if (editingVehicleId) {
         await vehicleApi.update(editingVehicleId, payload);
-        Alert.alert("Vehicle updated", "Your vehicle was updated successfully.");
+        await success("Vehicle updated", "Your vehicle was updated successfully.");
       } else {
         await vehicleApi.create(payload);
-        Alert.alert("Vehicle saved", "Your vehicle was added successfully.");
+        await success("Vehicle saved", "Your vehicle was added successfully.");
       }
       resetForm();
       await loadVehicles();
-    } catch (error) {
-      Alert.alert(editingVehicleId ? "Update failed" : "Save failed", error.message);
+    } catch (err) {
+      await error(editingVehicleId ? "Update failed" : "Save failed", err.message);
     } finally {
+      hideLoading();
       setSaving(false);
     }
   }
 
-  function confirmDelete(vehicle) {
-    Alert.alert(
-      "Delete Vehicle",
-      `Remove ${vehicle.vehicleMakeName || ""} ${vehicle.vehicleModelName || ""}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteVehicle(vehicle.vehicleId)
-        }
-      ]
-    );
+  async function confirmDelete(vehicle) {
+    const ok = await confirm({
+      title: "Delete Vehicle",
+      message: `Remove ${vehicle.vehicleMakeName || ""} ${vehicle.vehicleModelName || ""}?`,
+      confirmText: "Delete",
+      danger: true
+    });
+    if (ok) await deleteVehicle(vehicle.vehicleId);
   }
 
   async function deleteVehicle(id) {
     setActionLoadingId(id);
+    showLoading("Deleting vehicle…");
     try {
       await vehicleApi.remove(id);
       await loadVehicles();
-    } catch (error) {
-      Alert.alert("Delete failed", error.message);
+    } catch (err) {
+      await error("Delete failed", err.message);
     } finally {
+      hideLoading();
       setActionLoadingId(null);
     }
   }
 
   async function setDefaultVehicle(id) {
     setActionLoadingId(id);
+    showLoading("Updating default…");
     try {
       await vehicleApi.makeDefault(id);
       await loadVehicles();
-    } catch (error) {
-      Alert.alert("Failed to set default", error.message);
+    } catch (err) {
+      await error("Failed to set default", err.message);
     } finally {
+      hideLoading();
       setActionLoadingId(null);
     }
   }
@@ -349,9 +354,7 @@ export function VehiclesScreen() {
         ) : null}
       </View>
 
-      {loadingVehicles ? (
-        <ActivityIndicator color={colors.primary} size="large" style={styles.bigLoader} />
-      ) : vehicles.length === 0 ? (
+      {loadingVehicles ? null : vehicles.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🚗</Text>
           <Text style={styles.emptyTitle}>No vehicles yet</Text>

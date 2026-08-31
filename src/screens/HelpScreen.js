@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   Text,
@@ -11,6 +9,7 @@ import {
 } from "react-native";
 import { helpApi } from "../api/client";
 import { Header } from "../components/Header";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -23,6 +22,7 @@ function statusLabel(status) {
 }
 
 export function HelpScreen({ onBack }) {
+  const { showLoading, hideLoading, success, error, info } = useFeedback();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,18 +32,20 @@ export function HelpScreen({ onBack }) {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
+    showLoading("Loading tickets…");
     try {
       const res = await helpApi.list();
       const list = res?.data || [];
       setTickets(Array.isArray(list) ? list : []);
-    } catch (error) {
-      console.warn("Help load failed:", error.message);
+    } catch (err) {
+      console.warn("Help load failed:", err.message);
       setTickets([]);
     } finally {
+      hideLoading();
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [showLoading, hideLoading]);
 
   useEffect(() => {
     load();
@@ -51,10 +53,11 @@ export function HelpScreen({ onBack }) {
 
   async function submit() {
     if (!subject.trim() || !message.trim()) {
-      Alert.alert("Help", "Subject and message are required.");
+      await info("Help", "Subject and message are required.");
       return;
     }
     setSaving(true);
+    showLoading("Submitting ticket…");
     try {
       await helpApi.create({
         subject: subject.trim(),
@@ -63,11 +66,12 @@ export function HelpScreen({ onBack }) {
       setSubject("");
       setMessage("");
       setShowForm(false);
-      Alert.alert("Help", "Ticket submitted. We'll get back to you soon.");
+      await success("Help", "Ticket submitted. We'll get back to you soon.");
       await load();
-    } catch (error) {
-      Alert.alert("Help", error.message || "Unable to submit ticket.");
+    } catch (err) {
+      await error("Help", err.message || "Unable to submit ticket.");
     } finally {
+      hideLoading();
       setSaving(false);
     }
   }
@@ -133,9 +137,7 @@ export function HelpScreen({ onBack }) {
         <Text style={styles.sectionTitle}>My tickets</Text>
       </View>
 
-      {loading ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : tickets.length === 0 ? (
+      {loading ? null : tickets.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>No tickets yet</Text>
           <Text style={styles.emptySub}>Tap Raise help if you need support.</Text>

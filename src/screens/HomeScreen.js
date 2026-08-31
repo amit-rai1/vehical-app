@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -22,6 +21,7 @@ import {
 } from "../api/client";
 import { Header } from "../components/Header";
 import { PlanCalendar } from "../components/PlanCalendar";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -98,6 +98,7 @@ export function HomeScreen({
   onOpenServices,
   refreshKey
 }) {
+  const { showLoading, hideLoading, success, error, info } = useFeedback();
   const [plans, setPlans] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [addresses, setAddresses] = useState([]);
@@ -138,6 +139,7 @@ export function HomeScreen({
   }, []);
 
   const loadDashboard = useCallback(async () => {
+    showLoading("Loading home…");
     try {
       const [plansResponse, vehiclesResponse, addressesResponse, bannersResponse] =
         await Promise.all([
@@ -192,15 +194,16 @@ export function HomeScreen({
       } else {
         setServiceable(true);
       }
-    } catch (error) {
-      console.warn("Failed to load dashboard:", error.message);
+    } catch (err) {
+      console.warn("Failed to load dashboard:", err.message);
       setPlans([]);
       setVehicles([]);
     } finally {
+      hideLoading();
       setLoading(false);
       setRefreshing(false);
     }
-  }, [checkPincode]);
+  }, [checkPincode, showLoading, hideLoading]);
 
   useEffect(() => {
     setLoading(true);
@@ -236,14 +239,15 @@ export function HomeScreen({
     try {
       const res = await planApi.get(planId);
       setPlanDetails(prev => ({ ...prev, [planId]: res?.data || null }));
-    } catch (error) {
-      Alert.alert("Plan calendar", error.message || "Unable to load calendar.");
+    } catch (err) {
+      await error("Plan calendar", err.message || "Unable to load calendar.");
     }
   }
 
   async function submitAreaRequest() {
     if (!selectedAddress) return;
     setSubmittingArea(true);
+    showLoading("Submitting request…");
     try {
       await locationApi.requestArea({
         name: user?.name || selectedAddress.contactPersonName || "Customer",
@@ -253,18 +257,19 @@ export function HomeScreen({
         notes: areaNote || null,
         sourceModule: 1
       });
-      Alert.alert("Request sent", "Thanks! We'll notify you when we expand to your area.");
+      await success("Request sent", "Thanks! We'll notify you when we expand to your area.");
       setAreaNote("");
-    } catch (error) {
-      Alert.alert("Request", error.message || "Unable to submit request.");
+    } catch (err) {
+      await error("Request", err.message || "Unable to submit request.");
     } finally {
+      hideLoading();
       setSubmittingArea(false);
     }
   }
 
-  function goBuyOrBook(target) {
+  async function goBuyOrBook(target) {
     if (!serviceable) {
-      Alert.alert(
+      await info(
         "Not available yet",
         "We're not available in your area yet. Leave a request below and we'll get back to you."
       );
@@ -401,11 +406,7 @@ export function HomeScreen({
         </TouchableOpacity>
       </View>
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : plans.length === 0 ? (
+      {loading ? null : plans.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>You don’t have any plan yet</Text>
           <Text style={styles.emptySub}>

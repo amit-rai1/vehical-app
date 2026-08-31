@@ -69,10 +69,11 @@ export const styles = StyleSheet.create({
     paddingRight: 4
   },
   headerLogo: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     resizeMode: "contain",
-    borderRadius: 10
+    backgroundColor: "#fff"
   },
   otpLinkRow: {
     flexDirection: "row",

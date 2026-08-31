@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import RazorpayCheckout from "react-native-razorpay";
 import { paymentApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
+import { useFeedback } from "../feedback";
 import { styles } from "../styles/appStyles";
 
 export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
+  const { showLoading, hideLoading, success, error } = useFeedback();
   const [submitting, setSubmitting] = useState(false);
   const payment = paymentInfo?.payment;
   const amount = payment?.amount ?? 0;
@@ -19,11 +21,12 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
 
   async function handlePay() {
     if (!orderId || !keyId) {
-      Alert.alert("Payment error", "Missing payment order details.");
+      await error("Payment error", "Missing payment order details.");
       return;
     }
 
     setSubmitting(true);
+    showLoading("Processing payment…");
 
     try {
       const amountInSubunits = Math.round(Number(amount || 0) * 100);
@@ -32,7 +35,7 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
         key: keyId,
         amount: String(amountInSubunits),
         currency,
-        name: "Marker",
+        name: "Vehicle Service",
         description: paymentInfo?.plan?.name || "Service plan purchase",
         order_id: orderId,
         prefill: {
@@ -46,29 +49,30 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
 
       const data = await RazorpayCheckout.open(options);
 
-      const confirm = await paymentApi.confirmRazorpay({
+      const confirmResult = await paymentApi.confirmRazorpay({
         razorpayOrderId: data.razorpay_order_id,
         razorpayPaymentId: data.razorpay_payment_id,
         razorpaySignature: data.razorpay_signature
       });
 
       const message =
-        confirm?.data?.activationMessage ||
-        confirm?.message ||
+        confirmResult?.data?.activationMessage ||
+        confirmResult?.message ||
         "Thanks for purchasing the plan.";
 
-      Alert.alert("Purchase successful", message);
+      await success("Purchase successful", message);
       onPaymentSuccess?.();
-    } catch (error) {
-      if (error && typeof error === "object" && "code" in error) {
-        Alert.alert(
+    } catch (err) {
+      if (err && typeof err === "object" && "code" in err) {
+        await error(
           "Payment failed",
-          `${error.description || "Unable to complete payment."}`
+          `${err.description || "Unable to complete payment."}`
         );
-      } else if (error?.message && error.message !== "User cancelled the payment") {
-        Alert.alert("Payment failed", error.message);
+      } else if (err?.message && err.message !== "User cancelled the payment") {
+        await error("Payment failed", err.message);
       }
     } finally {
+      hideLoading();
       setSubmitting(false);
     }
   }

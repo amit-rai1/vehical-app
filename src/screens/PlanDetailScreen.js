@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { addressApi, planApi, vehicleApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
+import { useFeedback } from "../feedback";
 import { styles } from "../styles/appStyles";
 
 function vehicleTypeLabel(type) {
@@ -29,6 +30,7 @@ function pad2(n) {
 }
 
 export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
+  const { showLoading, hideLoading, error, info } = useFeedback();
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -53,6 +55,7 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
 
   useEffect(() => {
     (async () => {
+      showLoading("Loading details…");
       try {
         const [vehiclesRes, addressesRes] = await Promise.all([
           vehicleApi.list({
@@ -79,11 +82,13 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
         if (defV) setVehicleId(defV.vehicleId);
         const defA = addressesSafe.find(a => a.isDefault) || addressesSafe[0];
         if (defA) setAddressId(defA.addressId);
-      } catch (error) {
-        console.warn(error.message);
+      } catch (err) {
+        console.warn(err.message);
+      } finally {
+        hideLoading();
       }
     })();
-  }, [serviceVehicleType]);
+  }, [serviceVehicleType, showLoading, hideLoading]);
 
   const selectedPlan = useMemo(
     () => plans.find(p => (p.id || p.servicePlanId) === selectedPlanId) || null,
@@ -97,19 +102,20 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
 
   async function handleBuyPlan() {
     if (!selectedPlan) {
-      Alert.alert("Select a plan", "Please select a plan to continue.");
+      await info("Select a plan", "Please select a plan to continue.");
       return;
     }
     if (!vehicleId) {
-      Alert.alert("Select vehicle", `Please select a ${typeLabel} vehicle for this plan.`);
+      await info("Select vehicle", `Please select a ${typeLabel} vehicle for this plan.`);
       return;
     }
     if (!addressId) {
-      Alert.alert("Select address", "Please select a service address.");
+      await info("Select address", "Please select a service address.");
       return;
     }
 
     setCreatingOrder(true);
+    showLoading("Starting payment…");
     try {
       const preferredServiceTime = `${pad2(hour)}:${pad2(minute)}`;
       const body = {
@@ -134,9 +140,10 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
         addressId,
         preferredServiceTime
       });
-    } catch (error) {
-      Alert.alert("Unable to start payment", error.message || "Please try again.");
+    } catch (err) {
+      await error("Unable to start payment", err.message || "Please try again.");
     } finally {
+      hideLoading();
       setCreatingOrder(false);
     }
   }

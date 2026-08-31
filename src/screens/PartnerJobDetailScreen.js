@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Linking,
   ScrollView,
   Text,
-  TouchableOpacity,
   View
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -14,7 +12,7 @@ import { partnerApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { Field } from "../components/Field";
-import { colors } from "../theme";
+import { useFeedback } from "../feedback";
 import { styles } from "../styles/appStyles";
 
 function bookingStatusLabel(status) {
@@ -54,6 +52,7 @@ function toDataUri(raw) {
 }
 
 export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
+  const { showLoading, hideLoading, success, error, info } = useFeedback();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -62,19 +61,20 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
 
   const loadJob = useCallback(async () => {
     setLoading(true);
+    showLoading("Loading job…");
     try {
       const response = await partnerApi.getJob(bookingId);
       const data = response?.data || response;
       setJob(data || null);
       setNotes(data?.partnerCompletionNotes || "");
-    } catch (error) {
-      Alert.alert("Unable to load job", error.message || "Please try again.", [
-        { text: "OK", onPress: onBack }
-      ]);
+    } catch (err) {
+      await error("Unable to load job", err.message || "Please try again.");
+      onBack?.();
     } finally {
+      hideLoading();
       setLoading(false);
     }
-  }, [bookingId, onBack]);
+  }, [bookingId, onBack, showLoading, hideLoading, error]);
 
   useEffect(() => {
     loadJob();
@@ -85,41 +85,43 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
     const lat = job.addressLatitude;
     const lng = job.addressLongitude;
     if (lat == null || lng == null) {
-      Alert.alert("No location", "This address has no map coordinates.");
+      await info("No location", "This address has no map coordinates.");
       return;
     }
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert("Unable to open maps", "Please open Google Maps manually.");
+      await error("Unable to open maps", "Please open Google Maps manually.");
     }
   }
 
   async function callCustomer() {
     const mobile = job?.customerMobile || job?.addressMobile;
     if (!mobile) {
-      Alert.alert("No phone", "Customer mobile number is not available.");
+      await info("No phone", "Customer mobile number is not available.");
       return;
     }
     const tel = `tel:+91${String(mobile).replace(/\D/g, "")}`;
     try {
       await Linking.openURL(tel);
     } catch {
-      Alert.alert("Unable to call", "Could not open the phone dialer.");
+      await error("Unable to call", "Could not open the phone dialer.");
     }
   }
 
   async function handleStart() {
     setBusy(true);
+    showLoading("Starting service…");
     try {
       await partnerApi.startJob(bookingId);
-      Alert.alert("Service started", "Customer tracking now shows In Progress.");
+      await success("Service started", "Customer tracking now shows In Progress.");
       onChanged?.();
       await loadJob();
-    } catch (error) {
-      Alert.alert("Unable to start", error.message || "Please try again.");
+    } catch (err) {
+      await error("Unable to start", err.message || "Please try again.");
     } finally {
+      hideLoading();
       setBusy(false);
     }
   }
@@ -133,7 +135,7 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
       }));
 
     if (!incoming.length) {
-      Alert.alert("No images", "Could not read selected images. Try again.");
+      await error("No images", "Could not read selected images. Try again.");
       return;
     }
 
@@ -146,9 +148,9 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
     });
   }
 
-  function promptAddPhotos() {
+  async function promptAddPhotos() {
     if (pickedImages.length >= 5) {
-      Alert.alert("Limit reached", "You can upload up to 5 photos.");
+      await info("Limit reached", "You can upload up to 5 photos.");
       return;
     }
     Alert.alert("Add service photo", "Choose how to add photos", [
@@ -161,7 +163,7 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
   async function takePhoto() {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow camera access to take service photos.");
+      await error("Permission needed", "Allow camera access to take service photos.");
       return;
     }
 
@@ -181,7 +183,10 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
   async function pickFromGallery() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow photo library access to upload service images.");
+      await error(
+        "Permission needed",
+        "Allow photo library access to upload service images."
+      );
       return;
     }
 
@@ -202,11 +207,12 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
 
   async function handleComplete() {
     if (!pickedImages.length) {
-      Alert.alert("Images required", "Upload at least one service photo before completing.");
+      await info("Images required", "Upload at least one service photo before completing.");
       return;
     }
 
     setBusy(true);
+    showLoading("Completing service…");
     try {
       await partnerApi.completeJob(bookingId, {
         notes: notes || null,
@@ -215,23 +221,20 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
           displayOrder: img.displayOrder || index + 1
         }))
       });
-      Alert.alert("Service completed", "Customer tracking now shows Completed.");
+      await success("Service completed", "Customer tracking now shows Completed.");
       setPickedImages([]);
       onChanged?.();
       await loadJob();
-    } catch (error) {
-      Alert.alert("Unable to complete", error.message || "Please try again.");
+    } catch (err) {
+      await error("Unable to complete", err.message || "Please try again.");
     } finally {
+      hideLoading();
       setBusy(false);
     }
   }
 
   if (loading) {
-    return (
-      <View style={[styles.flex, styles.centered]}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
+    return <View style={styles.flex} />;
   }
 
   if (!job) {

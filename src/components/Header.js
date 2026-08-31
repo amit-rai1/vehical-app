@@ -25,7 +25,7 @@ export function Header({ title, subtitle, onLogout }) {
         <Image
           source={logoSource}
           style={styles.headerLogo}
-          accessibilityLabel="Marker logo"
+          accessibilityLabel="App logo"
         />
       )}
     </View>

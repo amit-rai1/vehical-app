@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { addressApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
@@ -10,6 +10,7 @@ import {
   getCurrentCoordinates,
   reverseGeocode
 } from "../components/LocationMapPicker";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -45,6 +46,7 @@ const EMPTY_FORM = {
 };
 
 export function AddressesScreen() {
+  const { showLoading, hideLoading, success, error, info, confirm } = useFeedback();
   const [addresses, setAddresses] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -60,17 +62,19 @@ export function AddressesScreen() {
 
   const loadAddresses = useCallback(async () => {
     setLoadingList(true);
+    showLoading("Loading addresses…");
     try {
       const response = await addressApi.list();
       const data = response?.data?.records || response?.data?.items || response?.data || [];
       setAddresses(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.warn("Failed to load addresses:", error.message);
+    } catch (err) {
+      console.warn("Failed to load addresses:", err.message);
       setAddresses([]);
     } finally {
+      hideLoading();
       setLoadingList(false);
     }
-  }, []);
+  }, [showLoading, hideLoading]);
 
   useEffect(() => {
     loadAddresses();
@@ -128,10 +132,10 @@ export function AddressesScreen() {
       const coords = await getCurrentCoordinates();
       const hint = await reverseGeocode(coords.latitude, coords.longitude);
       applyLocation(coords.latitude, coords.longitude, hint);
-    } catch (error) {
-      Alert.alert(
+    } catch (err) {
+      await error(
         "Location unavailable",
-        error.message || "Could not get your location. Please pick on the map."
+        err.message || "Could not get your location. Please pick on the map."
       );
     } finally {
       setLocating(false);
@@ -140,33 +144,34 @@ export function AddressesScreen() {
 
   async function saveAddress() {
     if (!form.contactPersonName) {
-      Alert.alert("Missing field", "Please enter a contact person name.");
+      await info("Missing field", "Please enter a contact person name.");
       return;
     }
     if (!form.mobileNumber) {
-      Alert.alert("Missing field", "Please enter a mobile number.");
+      await info("Missing field", "Please enter a mobile number.");
       return;
     }
     if (!form.addressLine1) {
-      Alert.alert("Missing field", "Please enter address line 1.");
+      await info("Missing field", "Please enter address line 1.");
       return;
     }
     if (!form.city) {
-      Alert.alert("Missing field", "Please enter a city.");
+      await info("Missing field", "Please enter a city.");
       return;
     }
     if (!form.pincode) {
-      Alert.alert("Missing field", "Please enter a pincode.");
+      await info("Missing field", "Please enter a pincode.");
       return;
     }
     const lat = Number(form.latitude);
     const lng = Number(form.longitude);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      Alert.alert("Location required", "Please set location with current GPS or pick on map.");
+      await info("Location required", "Please set location with current GPS or pick on map.");
       return;
     }
 
     setSaving(true);
+    showLoading(editingId ? "Updating address…" : "Saving address…");
     try {
       const payload = {
         ...form,
@@ -178,55 +183,55 @@ export function AddressesScreen() {
 
       if (editingId) {
         await addressApi.update(editingId, payload);
-        Alert.alert("Address updated", "Your address was updated successfully.");
+        await success("Address updated", "Your address was updated successfully.");
       } else {
         await addressApi.create(payload);
-        Alert.alert("Address saved", "This address is ready for bookings.");
+        await success("Address saved", "This address is ready for bookings.");
       }
       resetForm();
       await loadAddresses();
-    } catch (error) {
-      Alert.alert(editingId ? "Update failed" : "Save failed", error.message);
+    } catch (err) {
+      await error(editingId ? "Update failed" : "Save failed", err.message);
     } finally {
+      hideLoading();
       setSaving(false);
     }
   }
 
-  function confirmDelete(address) {
-    Alert.alert(
-      "Delete Address",
-      `Remove ${address.addressType || ""} address?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteAddress(address.addressId)
-        }
-      ]
-    );
+  async function confirmDelete(address) {
+    const ok = await confirm({
+      title: "Delete Address",
+      message: `Remove ${address.addressType || ""} address?`,
+      confirmText: "Delete",
+      danger: true
+    });
+    if (ok) await deleteAddress(address.addressId);
   }
 
   async function deleteAddress(id) {
     setActionLoadingId(id);
+    showLoading("Deleting address…");
     try {
       await addressApi.remove(id);
       await loadAddresses();
-    } catch (error) {
-      Alert.alert("Delete failed", error.message);
+    } catch (err) {
+      await error("Delete failed", err.message);
     } finally {
+      hideLoading();
       setActionLoadingId(null);
     }
   }
 
   async function setDefaultAddress(id) {
     setActionLoadingId(id);
+    showLoading("Updating default…");
     try {
       await addressApi.makeDefault(id);
       await loadAddresses();
-    } catch (error) {
-      Alert.alert("Failed to set default", error.message);
+    } catch (err) {
+      await error("Failed to set default", err.message);
     } finally {
+      hideLoading();
       setActionLoadingId(null);
     }
   }
@@ -373,9 +378,7 @@ export function AddressesScreen() {
         ) : null}
       </View>
 
-      {loadingList ? (
-        <ActivityIndicator color={colors.primary} size="large" style={styles.bigLoader} />
-      ) : addresses.length === 0 ? (
+      {loadingList ? null : addresses.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>📍</Text>
           <Text style={styles.emptyTitle}>No addresses yet</Text>

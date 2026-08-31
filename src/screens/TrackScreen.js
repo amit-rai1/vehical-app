@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   Linking,
   RefreshControl,
   ScrollView,
@@ -13,6 +11,7 @@ import {
 import { bookingApi, feedbackApi, skipRequestApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -83,6 +82,7 @@ function canRequestSkip(booking) {
 }
 
 export function TrackScreen({ refreshKey }) {
+  const { showLoading, hideLoading, success, error, info, confirm } = useFeedback();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,19 +92,21 @@ export function TrackScreen({ refreshKey }) {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   const loadBookings = useCallback(async () => {
+    showLoading("Loading bookings…");
     try {
       const response = await bookingApi.list({ pageNumber: 1, pageSize: 20 });
       const records =
         response?.data?.records || response?.data?.items || response?.data || [];
       setBookings(Array.isArray(records) ? records : []);
-    } catch (error) {
-      console.warn("Failed to load bookings:", error.message);
+    } catch (err) {
+      console.warn("Failed to load bookings:", err.message);
       setBookings([]);
     } finally {
+      hideLoading();
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [showLoading, hideLoading]);
 
   useEffect(() => {
     setLoading(true);
@@ -113,14 +115,14 @@ export function TrackScreen({ refreshKey }) {
 
   async function callPartner(mobile) {
     if (!mobile) {
-      Alert.alert("No phone", "Partner mobile is not available yet.");
+      await info("No phone", "Partner mobile is not available yet.");
       return;
     }
     const tel = `tel:+91${String(mobile).replace(/\D/g, "")}`;
     try {
       await Linking.openURL(tel);
     } catch {
-      Alert.alert("Unable to call", "Could not open the phone dialer.");
+      await error("Unable to call", "Could not open the phone dialer.");
     }
   }
 
@@ -131,59 +133,56 @@ export function TrackScreen({ refreshKey }) {
   }
 
   async function submitSkipRequest(bookingId) {
-    Alert.alert(
-      "Can't make it?",
-      "Tell us at least 24 hours before. If admin approves, this booking is cancelled and your plan end date extends by 1 day.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Submit request",
-          onPress: async () => {
-            try {
-              await skipRequestApi.create({
-                serviceBookingId: bookingId,
-                reason: "Unable to take service"
-              });
-              Alert.alert("Request sent", "Waiting for admin approval.");
-              await loadBookings();
-            } catch (error) {
-              Alert.alert("Request failed", error.message || "Please try again.");
-            }
-          }
-        }
-      ]
-    );
+    const ok = await confirm({
+      title: "Can't make it?",
+      message:
+        "Tell us at least 24 hours before. If admin approves, this booking is cancelled and your plan end date extends by 1 day.",
+      confirmText: "Submit request"
+    });
+    if (!ok) return;
+
+    showLoading("Submitting request…");
+    try {
+      await skipRequestApi.create({
+        serviceBookingId: bookingId,
+        reason: "Unable to take service"
+      });
+      await success("Request sent", "Waiting for admin approval.");
+      await loadBookings();
+    } catch (err) {
+      await error("Request failed", err.message || "Please try again.");
+    } finally {
+      hideLoading();
+    }
   }
 
   async function submitFeedback(bookingId) {
     if (rating < 1 || rating > 5) {
-      Alert.alert("Rating required", "Please choose 1 to 5 stars.");
+      await info("Rating required", "Please choose 1 to 5 stars.");
       return;
     }
     setSubmittingFeedback(true);
+    showLoading("Submitting feedback…");
     try {
       await feedbackApi.submit({
         bookingId,
         rating,
         comments: comments.trim() || null
       });
-      Alert.alert("Thank you", "Your feedback was submitted.");
+      await success("Thank you", "Your feedback was submitted.");
       setRatingBookingId(null);
       setComments("");
       await loadBookings();
-    } catch (error) {
-      Alert.alert("Feedback failed", error.message || "Please try again.");
+    } catch (err) {
+      await error("Feedback failed", err.message || "Please try again.");
     } finally {
+      hideLoading();
       setSubmittingFeedback(false);
     }
   }
 
   if (loading) {
-    return (
-      <View style={[styles.flex, styles.centered]}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
+    return <View style={styles.flex} />;
   }
 
   return (

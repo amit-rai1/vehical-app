@@ -18,6 +18,7 @@ import { TrackScreen } from "./src/screens/TrackScreen";
 import { VehiclesScreen } from "./src/screens/VehiclesScreen";
 import { styles } from "./src/styles/appStyles";
 import { colors } from "./src/theme";
+import { FeedbackProvider } from "./src/feedback";
 
 function isPartner(user) {
   return String(user?.roleName || "").toLowerCase().includes("partner");
@@ -275,7 +276,9 @@ function AppShell() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AppShell />
+      <FeedbackProvider>
+        <AppShell />
+      </FeedbackProvider>
     </SafeAreaProvider>
   );
 }

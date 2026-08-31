@@ -20,6 +20,7 @@ import {
   getCurrentCoordinates,
   reverseGeocode
 } from "../components/LocationMapPicker";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -49,6 +50,7 @@ function parseWaitSeconds(message) {
 }
 
 export function AuthScreen({ onSignedIn }) {
+  const { showLoading, hideLoading, success, error, info } = useFeedback();
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState("mobile");
@@ -144,7 +146,7 @@ export function AuthScreen({ onSignedIn }) {
           onPress: async () => {
             const permission = await ImagePicker.requestCameraPermissionsAsync();
             if (!permission.granted) {
-              Alert.alert("Permission needed", "Allow camera access to take a photo.");
+              error("Permission needed", "Allow camera access to take a photo.");
               resolve(null);
               return;
             }
@@ -171,7 +173,7 @@ export function AuthScreen({ onSignedIn }) {
           onPress: async () => {
             const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!permission.granted) {
-              Alert.alert("Permission needed", "Allow photo library access.");
+              error("Permission needed", "Allow photo library access.");
               resolve(null);
               return;
             }
@@ -207,14 +209,14 @@ export function AuthScreen({ onSignedIn }) {
 
   async function sendOtp({ isResend = false } = {}) {
     if (!/^[6-9]\d{9}$/.test(mobileNumber)) {
-      Alert.alert("Invalid mobile", "Enter a valid 10-digit Indian mobile number.");
+      await error("Invalid mobile", "Enter a valid 10-digit Indian mobile number.");
       return;
     }
 
     const cutoff = Date.now() - SEND_WINDOW_MS;
     const recent = sendHistory.filter(ts => ts >= cutoff);
     if (recent.length >= MAX_OTP_SENDS) {
-      Alert.alert(
+      await error(
         "OTP limit reached",
         "Too many OTP requests. Please try again after 1 minute."
       );
@@ -223,41 +225,43 @@ export function AuthScreen({ onSignedIn }) {
     }
 
     if (isResend && resendCooldown > 0) {
-      Alert.alert("Please wait", `You can resend OTP in ${resendCooldown} seconds.`);
+      await info("Please wait", `You can resend OTP in ${resendCooldown} seconds.`);
       return;
     }
 
     setLoading(true);
+    showLoading("Sending OTP…");
     try {
       await authApi.sendOtp(mobileNumber);
       setSendHistory([...recent, Date.now()]);
       startOtpTimers(RESEND_COOLDOWN_SECONDS);
       setStep("otp");
-    } catch (error) {
-      const waitSeconds = parseWaitSeconds(error.message);
+    } catch (err) {
+      const waitSeconds = parseWaitSeconds(err.message);
       if (waitSeconds != null) {
         setResendCooldown(waitSeconds);
         setStep("otp");
       }
-      Alert.alert("OTP could not be sent", error.message);
+      await error("OTP could not be sent", err.message);
     } finally {
+      hideLoading();
       setLoading(false);
     }
   }
 
   async function verifyOtp() {
     if (!/^\d{6}$/.test(otp)) {
-      Alert.alert("Invalid OTP", "Enter the 6-digit OTP sent to your mobile.");
+      await error("Invalid OTP", "Enter the 6-digit OTP sent to your mobile.");
       return;
     }
 
     if (otpExpiresIn <= 0) {
-      Alert.alert("OTP expired", "This OTP has expired. Please request a new OTP.");
+      await error("OTP expired", "This OTP has expired. Please request a new OTP.");
       return;
     }
 
     if (verifyAttemptsLeft <= 0) {
-      Alert.alert(
+      await error(
         "Attempts exceeded",
         "Maximum OTP attempts exceeded. Please request a new OTP."
       );
@@ -265,6 +269,7 @@ export function AuthScreen({ onSignedIn }) {
     }
 
     setLoading(true);
+    showLoading("Verifying OTP…");
     try {
       const response = await authApi.verifyOtp(mobileNumber, otp);
       const data = response?.data || {};
@@ -272,14 +277,14 @@ export function AuthScreen({ onSignedIn }) {
       if (data.token) {
         const roleName = normalizeRole(data.roleName);
         if (role === "partner" && roleName === "Customer") {
-          Alert.alert(
+          await info(
             "Wrong account type",
             "This mobile is registered as a Customer. Switch to Customer to continue."
           );
           return;
         }
         if (role === "customer" && roleName === "Partner") {
-          Alert.alert(
+          await info(
             "Wrong account type",
             "This mobile is registered as a Partner. Switch to Partner to continue."
           );
@@ -301,9 +306,9 @@ export function AuthScreen({ onSignedIn }) {
         return;
       }
 
-      Alert.alert("Login failed", response?.message || "Unable to verify OTP.");
-    } catch (error) {
-      const message = error.message || "Unable to verify OTP.";
+      await error("Login failed", response?.message || "Unable to verify OTP.");
+    } catch (err) {
+      const message = err.message || "Unable to verify OTP.";
       const remainingMatch = message.match(/(\d+)\s+attempt/i);
       if (remainingMatch) {
         const remaining = Number(remainingMatch[1]);
@@ -317,35 +322,36 @@ export function AuthScreen({ onSignedIn }) {
         setVerifyAttemptsLeft(current => Math.max(0, current - 1));
         setOtpHint(message);
       }
-      Alert.alert("OTP verification failed", message);
+      await error("OTP verification failed", message);
     } finally {
+      hideLoading();
       setLoading(false);
     }
   }
 
   async function register() {
     if (!form.name.trim()) {
-      Alert.alert("Name required", "Please enter your full name.");
+      await error("Name required", "Please enter your full name.");
       return;
     }
     if (!form.profileImage) {
-      Alert.alert("Profile image required", "Please upload a profile photo to continue.");
+      await error("Profile image required", "Please upload a profile photo to continue.");
       return;
     }
 
     if (role === "partner") {
       if (!form.address.trim()) {
-        Alert.alert("Workshop address required", "Workshop address is mandatory for partners.");
+        await error("Workshop address required", "Workshop address is mandatory for partners.");
         return;
       }
       if (!form.country.trim()) {
-        Alert.alert("Country required", "Please enter your country.");
+        await error("Country required", "Please enter your country.");
         return;
       }
       const lat = Number(form.latitude);
       const lng = Number(form.longitude);
       if (!locationPicked || !Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) {
-        Alert.alert(
+        await error(
           "Workshop location required",
           "Please set your workshop location using current location or the map."
         );
@@ -354,6 +360,7 @@ export function AuthScreen({ onSignedIn }) {
     }
 
     setLoading(true);
+    showLoading("Submitting registration…");
     try {
       const base = {
         name: form.name.trim(),
@@ -394,15 +401,16 @@ export function AuthScreen({ onSignedIn }) {
         idProofNumber: form.idProofNumber.trim() || null
       });
 
-      Alert.alert(
+      await success(
         "Registration submitted",
         response?.message ||
-          "Partner registration submitted successfully. Waiting for administrator approval.",
-        [{ text: "OK", onPress: resetToMobile }]
+          "Partner registration submitted successfully. Waiting for administrator approval."
       );
-    } catch (error) {
-      Alert.alert("Registration failed", error.message);
+      resetToMobile();
+    } catch (err) {
+      await error("Registration failed", err.message);
     } finally {
+      hideLoading();
       setLoading(false);
     }
   }
@@ -422,12 +430,15 @@ export function AuthScreen({ onSignedIn }) {
           <Image
             source={require("../../assets/logo.png")}
             style={{
-              width: 200,
-              height: 88,
+              width: 112,
+              height: 112,
+              borderRadius: 56,
               resizeMode: "contain",
               alignSelf: "center",
-              marginBottom: 20
+              marginBottom: 20,
+              backgroundColor: "#fff"
             }}
+            accessibilityLabel="App logo"
           />
 
           <View style={[styles.rowWrap, styles.rolePicker]}>
@@ -666,8 +677,8 @@ export function AuthScreen({ onSignedIn }) {
                               address: hint?.addressLine || hint?.displayName || ""
                             }));
                             setLocationPicked(true);
-                          } catch (error) {
-                            Alert.alert("Location unavailable", error.message);
+                          } catch (err) {
+                            error("Location unavailable", err.message);
                           } finally {
                             setLocating(false);
                           }

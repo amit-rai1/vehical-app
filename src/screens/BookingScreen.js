@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import { bookingApi, planApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { PlanCalendar } from "../components/PlanCalendar";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -27,6 +27,7 @@ export function BookingScreen({
   pendingPlanId,
   onPendingPlanConsumed
 }) {
+  const { showLoading, hideLoading, success, error, info, confirm } = useFeedback();
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [planDetail, setPlanDetail] = useState(null);
@@ -41,6 +42,7 @@ export function BookingScreen({
 
   async function loadPlans() {
     setLoading(true);
+    showLoading("Loading plans…");
     try {
       const plansRes = await planApi.list({
         pageNumber: 1,
@@ -57,9 +59,10 @@ export function BookingScreen({
       } else if (!selectedPlanId && plansSafe.length) {
         setSelectedPlanId(plansSafe[0].planId);
       }
-    } catch (error) {
-      Alert.alert("Unable to load booking", error.message || "Please try again.");
+    } catch (err) {
+      await error("Unable to load booking", err.message || "Please try again.");
     } finally {
+      hideLoading();
       setLoading(false);
     }
   }
@@ -75,9 +78,9 @@ export function BookingScreen({
       try {
         const res = await planApi.get(selectedPlanId);
         setPlanDetail(res?.data || null);
-      } catch (error) {
+      } catch (err) {
         setPlanDetail(null);
-        Alert.alert("Plan details", error.message || "Unable to load plan.");
+        await error("Plan details", err.message || "Unable to load plan.");
       } finally {
         setDetailLoading(false);
       }
@@ -98,42 +101,42 @@ export function BookingScreen({
 
   async function handleConfirm() {
     if (!selectedPlanId) {
-      Alert.alert("Select plan", "Please select an active plan first.", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Browse services", onPress: () => onNavigate("services") }
-      ]);
+      const browse = await confirm({
+        title: "Select plan",
+        message: "Please select an active plan first.",
+        confirmText: "Browse services"
+      });
+      if (browse) onNavigate("services");
       return;
     }
     if (!bookingDate) {
-      Alert.alert("Select date", "Please choose a service date from the calendar.");
+      await info("Select date", "Please choose a service date from the calendar.");
       return;
     }
 
     setSubmitting(true);
+    showLoading("Creating booking…");
     try {
       await bookingApi.create({
         customerPlanId: selectedPlanId,
         bookingDate,
         notes: null
       });
-      Alert.alert(
+      await success(
         "Booking placed",
-        "Your service is booked. A partner will be assigned shortly.",
-        [{ text: "Track", onPress: () => onNavigate("track") }]
+        "Your service is booked. A partner will be assigned shortly."
       );
-    } catch (error) {
-      Alert.alert("Booking failed", error.message || "Unable to create booking.");
+      onNavigate("track");
+    } catch (err) {
+      await error("Booking failed", err.message || "Unable to create booking.");
     } finally {
+      hideLoading();
       setSubmitting(false);
     }
   }
 
   if (loading) {
-    return (
-      <View style={[styles.flex, styles.centered]}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
+    return <View style={styles.flex} />;
   }
 
   return (

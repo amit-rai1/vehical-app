@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   Image,
   Linking,
   RefreshControl,
@@ -19,6 +17,7 @@ import {
   profileApi
 } from "../api/client";
 import { Header } from "../components/Header";
+import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -117,6 +116,7 @@ export function AccountScreen({
   onOpenJob,
   onUserUpdated
 }) {
+  const { showLoading, hideLoading, confirm } = useFeedback();
   const partner = isPartnerUser(user);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -128,6 +128,7 @@ export function AccountScreen({
   const [jobs, setJobs] = useState([]);
 
   const load = useCallback(async () => {
+    showLoading("Loading account…");
     try {
       if (partner) {
         const [profileRes, jobsRes] = await Promise.all([
@@ -174,24 +175,28 @@ export function AccountScreen({
         setInvoices(Array.isArray(invoiceList) ? invoiceList : []);
         setFeedback(Array.isArray(feedbackList) ? feedbackList : []);
       }
-    } catch (error) {
-      console.warn("Account load failed:", error.message);
+    } catch (err) {
+      console.warn("Account load failed:", err.message);
     } finally {
+      hideLoading();
       setLoading(false);
       setRefreshing(false);
     }
-  }, [partner]);
+  }, [partner, showLoading, hideLoading]);
 
   useEffect(() => {
     setLoading(true);
     load();
   }, [load, refreshKey]);
 
-  function confirmLogout() {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: () => onLogout?.() }
-    ]);
+  async function confirmLogout() {
+    const ok = await confirm({
+      title: "Logout",
+      message: "Are you sure you want to logout?",
+      confirmText: "Logout",
+      danger: true
+    });
+    if (ok) onLogout?.();
   }
 
   const displayName = profile?.name || user?.name || (partner ? "Partner" : "Customer");
@@ -238,11 +243,7 @@ export function AccountScreen({
     >
       <Header title="My Account" subtitle={partner ? "Partner profile & jobs" : "Profile & history"} />
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : (
+      {loading ? null : (
         <>
           <View style={styles.planCard}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>

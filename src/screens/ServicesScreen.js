@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -9,7 +8,7 @@ import {
 import { catalogApi } from "../api/client";
 import { Chip } from "../components/Chip";
 import { Header } from "../components/Header";
-import { colors } from "../theme";
+import { useFeedback } from "../feedback";
 import { styles } from "../styles/appStyles";
 
 const VEHICLE_FILTERS = [
@@ -18,10 +17,11 @@ const VEHICLE_FILTERS = [
 ];
 
 export function ServicesScreen({ onOpenPlanDetail }) {
+  const { showLoading, hideLoading } = useFeedback();
   const [vehicleType, setVehicleType] = useState("TwoWheeler");
   const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     loadCatalog(vehicleType);
@@ -29,15 +29,17 @@ export function ServicesScreen({ onOpenPlanDetail }) {
 
   async function loadCatalog(type) {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
+    showLoading("Loading services…");
     try {
       const response = await catalogApi.list(type);
       const data = response?.data || response || [];
       setCatalog(Array.isArray(data) ? data : []);
     } catch (e) {
-      setError(e.message || "Failed to load services.");
+      setLoadError(e.message || "Failed to load services.");
       setCatalog([]);
     } finally {
+      hideLoading();
       setLoading(false);
     }
   }
@@ -60,13 +62,9 @@ export function ServicesScreen({ onOpenPlanDetail }) {
         ))}
       </View>
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : error ? (
+      {loading ? null : loadError ? (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptySub}>{error}</Text>
+          <Text style={styles.emptySub}>{loadError}</Text>
         </View>
       ) : catalog.length === 0 ? (
         <View style={styles.emptyCard}>

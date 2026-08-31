@@ -109,7 +109,7 @@ export function AuthScreen({ onSignedIn }) {
     return {
       userId: data?.userId ?? null,
       mobileNumber,
-      name: overrides.name || form.name || data?.name || "User",
+      name: overrides.name || data?.name || form.name || "User",
       token: data?.token || null,
       roleId: data?.roleId ?? null,
       roleName: normalizeRole(data?.roleName) || overrides.roleName || "",
@@ -289,7 +289,7 @@ export function AuthScreen({ onSignedIn }) {
         setAuthToken(data.token);
         onSignedIn(
           buildUserSession(data, {
-            name: form.name || (roleName === "Partner" ? "Partner" : "Customer"),
+            name: data.name || form.name || (roleName === "Partner" ? "Partner" : "Customer"),
             roleName
           })
         );
@@ -419,15 +419,16 @@ export function AuthScreen({ onSignedIn }) {
           contentContainerStyle={styles.authContainer}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.logoMark}>
-            <Text style={styles.logoIcon}>VS</Text>
-          </View>
-          <Text style={styles.authTitle}>Vehicle Service</Text>
-          <Text style={styles.authCopy}>
-            {role === "partner"
-              ? "Partner login — manage assigned doorstep service jobs."
-              : "Book trusted doorstep service, manage vehicles, and track every visit."}
-          </Text>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={{
+              width: 200,
+              height: 88,
+              resizeMode: "contain",
+              alignSelf: "center",
+              marginBottom: 20
+            }}
+          />
 
           <View style={[styles.rowWrap, styles.rolePicker]}>
             <Chip
@@ -452,10 +453,7 @@ export function AuthScreen({ onSignedIn }) {
                 placeholder="10-digit mobile"
               />
               <Text style={styles.listSub}>
-                Use a WhatsApp-enabled mobile number to register. OTP is sent to this number.
-              </Text>
-              <Text style={styles.listSub}>
-                Limits: 1 OTP every 15 seconds · max 3 OTPs every 1 minute.
+                Use a WhatsApp-enabled mobile number to register. OTP sent to this number.
               </Text>
               <Button
                 title="Send OTP"
@@ -473,14 +471,6 @@ export function AuthScreen({ onSignedIn }) {
 
           {step === "otp" ? (
             <View style={styles.panel}>
-              <Text style={styles.listSub}>OTP sent to +91 {mobileNumber}</Text>
-              <Text style={styles.listSub}>
-                Expires in {formatMmSs(otpExpiresIn)}
-                {otpExpiresIn <= 0 ? " · expired — resend required" : ""}
-              </Text>
-              <Text style={styles.listSub}>
-                Verify attempts left: {verifyAttemptsLeft}/{MAX_VERIFY_ATTEMPTS}
-              </Text>
               <Field
                 label="OTP"
                 value={otp}
@@ -488,6 +478,14 @@ export function AuthScreen({ onSignedIn }) {
                 keyboardType="number-pad"
                 placeholder="Enter 6-digit OTP"
               />
+              <Text style={styles.listSub}>OTP sent to +91 {mobileNumber}</Text>
+              <Text style={styles.listSub}>
+                Expires in {formatMmSs(otpExpiresIn)}
+                {otpExpiresIn <= 0 ? " · expired — resend required" : ""}
+              </Text>
+              <Text style={[styles.listSub, { marginBottom: 12 }]}>
+                Verify attempts left: {verifyAttemptsLeft}/{MAX_VERIFY_ATTEMPTS}
+              </Text>
               {otpHint ? (
                 <Text style={[styles.listSub, { color: colors.danger, marginBottom: 8 }]}>
                   {otpHint}
@@ -499,19 +497,32 @@ export function AuthScreen({ onSignedIn }) {
                 disabled={loading || otpExpiresIn <= 0 || verifyAttemptsLeft <= 0}
                 onPress={verifyOtp}
               />
-              <Button
-                title={
-                  resendCooldown > 0
-                    ? `Resend OTP in ${resendCooldown}s`
-                    : recentSendCount >= MAX_OTP_SENDS
-                      ? "OTP limit reached"
-                      : "Resend OTP"
-                }
-                variant="ghost"
-                disabled={!canResend}
-                onPress={() => sendOtp({ isResend: true })}
-              />
-              <Button title="Change Mobile" variant="ghost" onPress={resetToMobile} />
+              <View style={styles.otpLinkRow}>
+                <TouchableOpacity
+                  onPress={() => canResend && sendOtp({ isResend: true })}
+                  disabled={!canResend}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                >
+                  <Text
+                    style={[
+                      styles.otpLinkLeft,
+                      !canResend && styles.otpLinkDisabled
+                    ]}
+                  >
+                    {resendCooldown > 0
+                      ? `Resend OTP in ${resendCooldown}s`
+                      : recentSendCount >= MAX_OTP_SENDS
+                        ? "OTP limit reached"
+                        : "Resend OTP"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={resetToMobile}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                >
+                  <Text style={styles.otpLinkRight}>Change Mobile</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : null}
 

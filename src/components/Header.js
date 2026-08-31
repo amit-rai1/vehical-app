@@ -1,12 +1,13 @@
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles/appStyles";
+
+const logoSource = require("../../assets/logo.png");
 
 export function Header({ title, subtitle, onLogout }) {
   return (
     <View style={styles.header}>
       <View style={styles.headerTextBlock}>
-        <Text style={styles.greeting}>Vehicle Service Management</Text>
         <Text style={styles.screenTitle}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
@@ -21,9 +22,11 @@ export function Header({ title, subtitle, onLogout }) {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       ) : (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>VS</Text>
-        </View>
+        <Image
+          source={logoSource}
+          style={styles.headerLogo}
+          accessibilityLabel="Marker logo"
+        />
       )}
     </View>
   );

@@ -162,6 +162,16 @@ export const bookingApi = {
   get: id => request(`/api/customer/bookings/${id}`)
 };
 
+export const skipRequestApi = {
+  create: body =>
+    request("/api/customer/skip-requests", {
+      method: "POST",
+      body
+    }),
+  list: (pageNumber = 1, pageSize = 20) =>
+    request(`/api/customer/skip-requests?pageNumber=${pageNumber}&pageSize=${pageSize}`)
+};
+
 export const partnerApi = {
   listJobs: params => {
     const search = new URLSearchParams();
@@ -203,4 +213,32 @@ export const feedbackApi = {
       body
     }),
   list: () => request("/api/customer/feedback")
+};
+
+export const bannerApi = {
+  list: () => request("/api/customer/banners")
+};
+
+export const locationApi = {
+  check: pincode =>
+    request(`/api/customer/locations/check?pincode=${encodeURIComponent(pincode || "")}`),
+  requestArea: body =>
+    request("/api/customer/locations/requests", {
+      method: "POST",
+      body
+    })
+};
+
+export const helpApi = {
+  list: () => request("/api/customer/help"),
+  create: body =>
+    request("/api/customer/help", {
+      method: "POST",
+      body
+    })
+};
+
+export const profileApi = {
+  customer: () => request("/api/customer/profile"),
+  partner: () => request("/api/partner/profile")
 };

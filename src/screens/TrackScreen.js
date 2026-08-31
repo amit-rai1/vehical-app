@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { bookingApi, feedbackApi } from "../api/client";
+import { bookingApi, feedbackApi, skipRequestApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { colors } from "../theme";
@@ -72,6 +72,16 @@ function StarPicker({ rating, onChange }) {
   );
 }
 
+function canRequestSkip(booking) {
+  if (!booking?.scheduledAt) return false;
+  const status = booking.status;
+  if (status === 4 || status === "Completed" || status === 5 || status === "Cancelled") {
+    return false;
+  }
+  const when = new Date(booking.scheduledAt).getTime();
+  return when - Date.now() >= 24 * 60 * 60 * 1000;
+}
+
 export function TrackScreen({ refreshKey }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +128,31 @@ export function TrackScreen({ refreshKey }) {
     setRatingBookingId(bookingId);
     setRating(5);
     setComments("");
+  }
+
+  async function submitSkipRequest(bookingId) {
+    Alert.alert(
+      "Can't make it?",
+      "Tell us at least 24 hours before. If admin approves, this booking is cancelled and your plan end date extends by 1 day.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Submit request",
+          onPress: async () => {
+            try {
+              await skipRequestApi.create({
+                serviceBookingId: bookingId,
+                reason: "Unable to take service"
+              });
+              Alert.alert("Request sent", "Waiting for admin approval.");
+              await loadBookings();
+            } catch (error) {
+              Alert.alert("Request failed", error.message || "Please try again.");
+            }
+          }
+        }
+      ]
+    );
   }
 
   async function submitFeedback(bookingId) {
@@ -252,6 +287,16 @@ export function TrackScreen({ refreshKey }) {
                   ))}
                 </View>
               )}
+
+              {canRequestSkip(booking) ? (
+                <TouchableOpacity
+                  style={styles.secondaryCta}
+                  onPress={() => submitSkipRequest(booking.bookingId)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.secondaryCtaText}>Can't make it (before 24h)</Text>
+                </TouchableOpacity>
+              ) : null}
 
               {completed && booking.hasFeedback ? (
                 <Text style={[styles.listSub, { marginTop: 12 }]}>

@@ -95,7 +95,6 @@ function JobCard({ job, onOpenJob }) {
 
 export function PartnerJobsScreen({
   user,
-  onLogout,
   onOpenJob,
   todayOnly = false,
   refreshKey
@@ -145,13 +144,6 @@ export function PartnerJobsScreen({
     loadJobs();
   }, [loadJobs, refreshKey]);
 
-  function confirmLogout() {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: () => onLogout?.() }
-    ]);
-  }
-
   const activeJobs = useMemo(() => jobs.filter(j => isActiveStatus(j.status)), [jobs]);
   const historyJobs = useMemo(() => jobs.filter(j => isHistoryStatus(j.status)), [jobs]);
   const todayActive = useMemo(
@@ -184,7 +176,6 @@ export function PartnerJobsScreen({
       <Header
         title={`Hello, ${user?.name || "Partner"}`}
         subtitle={todayOnly ? "Today’s schedule" : "Jobs & service history"}
-        onLogout={confirmLogout}
       />
 
       <View style={styles.panel}>

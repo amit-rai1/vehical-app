@@ -46,7 +46,7 @@ export function ServicesScreen({ onOpenPlanDetail }) {
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Header
         title="Services"
-        subtitle="Choose 2-wheeler or 4-wheeler plans and purchase for your vehicle."
+        subtitle="Pick your ride, pick your plan — doorstep service in a tap."
       />
 
       <View style={styles.segmentRow}>

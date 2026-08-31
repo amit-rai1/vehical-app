@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { planApi } from "../api/client";
+import { addressApi, planApi, vehicleApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { styles } from "../styles/appStyles";
@@ -12,16 +12,31 @@ function vehicleTypeLabel(type) {
   return "Vehicle";
 }
 
-function coversCopy(type) {
-  const label = vehicleTypeLabel(type);
-  if (label === "2 Wheeler") return "Covers all your 2 Wheeler vehicles";
-  if (label === "4 Wheeler") return "Covers all your 4 Wheeler vehicles";
-  return "Covers all matching vehicles of this type";
+function sameVehicleType(a, b) {
+  if (a == null || b == null || a === "" || b === "") return false;
+  const normalize = value => {
+    if (value === "1" || value === "TwoWheeler" || Number(value) === 1) return "2W";
+    if (value === "2" || value === "FourWheeler" || Number(value) === 2) return "4W";
+    return String(value);
+  };
+  return normalize(a) === normalize(b);
+}
+
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8..19
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
 }
 
 export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [addresses, setAddresses] = useState([]);
+  const [vehicleId, setVehicleId] = useState(null);
+  const [addressId, setAddressId] = useState(null);
+  const [hour, setHour] = useState(10);
+  const [minute, setMinute] = useState(0);
   const [creatingOrder, setCreatingOrder] = useState(false);
 
   const serviceName = service?.raw?.name || service?.title || "Service plan";
@@ -36,10 +51,48 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
     }
   }, [service]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const [vehiclesRes, addressesRes] = await Promise.all([
+          vehicleApi.list({
+            pageNumber: 1,
+            pageSize: 50,
+            search: "",
+            isActive: true,
+            sortBy: "CreatedOn",
+            isAscending: false
+          }),
+          addressApi.dropdown()
+        ]);
+        const vehicleList =
+          vehiclesRes?.data?.records || vehiclesRes?.data?.items || vehiclesRes?.data || [];
+        const addressList = addressesRes?.data || addressesRes || [];
+        const vehiclesSafe = Array.isArray(vehicleList) ? vehicleList : [];
+        const addressesSafe = Array.isArray(addressList) ? addressList : [];
+        setVehicles(vehiclesSafe);
+        setAddresses(addressesSafe);
+        const matching = vehiclesSafe.filter(v =>
+          sameVehicleType(v.vehicleType, serviceVehicleType)
+        );
+        const defV = matching.find(v => v.isDefault) || matching[0];
+        if (defV) setVehicleId(defV.vehicleId);
+        const defA = addressesSafe.find(a => a.isDefault) || addressesSafe[0];
+        if (defA) setAddressId(defA.addressId);
+      } catch (error) {
+        console.warn(error.message);
+      }
+    })();
+  }, [serviceVehicleType]);
+
   const selectedPlan = useMemo(
-    () =>
-      plans.find(p => (p.id || p.servicePlanId) === selectedPlanId) || null,
+    () => plans.find(p => (p.id || p.servicePlanId) === selectedPlanId) || null,
     [plans, selectedPlanId]
+  );
+
+  const matchingVehicles = useMemo(
+    () => vehicles.filter(v => sameVehicleType(v.vehicleType, serviceVehicleType)),
+    [vehicles, serviceVehicleType]
   );
 
   async function handleBuyPlan() {
@@ -47,11 +100,23 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
       Alert.alert("Select a plan", "Please select a plan to continue.");
       return;
     }
+    if (!vehicleId) {
+      Alert.alert("Select vehicle", `Please select a ${typeLabel} vehicle for this plan.`);
+      return;
+    }
+    if (!addressId) {
+      Alert.alert("Select address", "Please select a service address.");
+      return;
+    }
 
     setCreatingOrder(true);
     try {
+      const preferredServiceTime = `${pad2(hour)}:${pad2(minute)}`;
       const body = {
-        servicePlanId: selectedPlan.id || selectedPlan.servicePlanId
+        servicePlanId: selectedPlan.id || selectedPlan.servicePlanId,
+        vehicleId,
+        addressId,
+        preferredServiceTime
       };
 
       const response = await planApi.purchase(body);
@@ -64,7 +129,10 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
       onOrderCreated?.({
         payment,
         service: service?.raw || service,
-        plan: selectedPlan
+        plan: selectedPlan,
+        vehicleId,
+        addressId,
+        preferredServiceTime
       });
     } catch (error) {
       Alert.alert("Unable to start payment", error.message || "Please try again.");
@@ -75,50 +143,117 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-      <Header title="Plan details" subtitle={serviceName} />
-
-      <View style={styles.panel}>
-        <View style={styles.planCardHeader}>
-          <Text style={styles.panelTitle}>Vehicle coverage</Text>
-          <View style={styles.typeBadge}>
-            <Text style={styles.typeBadgeText}>{typeLabel === "2 Wheeler" ? "2W" : typeLabel === "4 Wheeler" ? "4W" : typeLabel}</Text>
-          </View>
-        </View>
-        <Text style={styles.emptySub}>{coversCopy(serviceVehicleType)}</Text>
-        <Text style={styles.listSub}>
-          Buy once, then book any of your {typeLabel.toLowerCase()} vehicles at checkout.
-        </Text>
-      </View>
+      <Header title="Review & buy" subtitle={serviceName} />
 
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>1. Choose a plan</Text>
         {plans.length === 0 ? (
           <Text style={styles.emptySub}>No plans available for this service right now.</Text>
         ) : (
-          <View>
-            {plans.map(plan => {
-              const key = plan.id || plan.servicePlanId;
-              const isSelected = key === selectedPlanId;
-              return (
-                <TouchableOpacity
-                  key={key}
-                  activeOpacity={0.86}
-                  onPress={() => setSelectedPlanId(key)}
-                  style={[styles.serviceCard, isSelected && styles.selectedCard]}
-                >
-                  <View style={styles.serviceInfo}>
-                    <Text style={styles.serviceTitle}>{plan.name}</Text>
-                    <Text style={styles.serviceMeta}>
-                      {plan.validityInDays} days • {plan.numberOfServices} services
-                    </Text>
-                    <Text style={styles.listTitle}>INR {plan.price}</Text>
-                  </View>
-                  <Text style={styles.chevron}>›</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          plans.map(plan => {
+            const key = plan.id || plan.servicePlanId;
+            const isSelected = key === selectedPlanId;
+            return (
+              <TouchableOpacity
+                key={key}
+                activeOpacity={0.86}
+                onPress={() => setSelectedPlanId(key)}
+                style={[styles.serviceCard, isSelected && styles.selectedCard]}
+              >
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceTitle}>{plan.name}</Text>
+                  <Text style={styles.serviceMeta}>
+                    {plan.validityInDays} days • {plan.numberOfServices} services
+                  </Text>
+                  <Text style={styles.listTitle}>INR {plan.price}</Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </TouchableOpacity>
+            );
+          })
         )}
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>2. Select vehicle ({typeLabel})</Text>
+        {matchingVehicles.length === 0 ? (
+          <Text style={styles.emptySub}>Add a matching vehicle before purchasing.</Text>
+        ) : (
+          matchingVehicles.map(v => (
+            <TouchableOpacity
+              key={v.vehicleId}
+              onPress={() => setVehicleId(v.vehicleId)}
+              style={[
+                styles.addressPreview,
+                vehicleId === v.vehicleId && styles.selectedAddress
+              ]}
+            >
+              <Text style={styles.listTitle}>{v.vehicleNumber || v.vehicleName}</Text>
+              <Text style={styles.listSub}>
+                {[v.makeName, v.modelName].filter(Boolean).join(" · ")}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>3. Select address</Text>
+        {addresses.length === 0 ? (
+          <Text style={styles.emptySub}>Add a service address before purchasing.</Text>
+        ) : (
+          addresses.map(a => (
+            <TouchableOpacity
+              key={a.addressId}
+              onPress={() => setAddressId(a.addressId)}
+              style={[
+                styles.addressPreview,
+                addressId === a.addressId && styles.selectedAddress
+              ]}
+            >
+              <Text style={styles.listTitle}>{a.addressType || "Address"}</Text>
+              <Text style={styles.listSub}>
+                {a.addressLine1 || a.label || a.fullAddress || ""}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>4. Preferred service time</Text>
+        <Text style={styles.listSub}>Used for every booking on this plan.</Text>
+        <Text style={[styles.listSub, { marginTop: 8 }]}>Hour</Text>
+        <View style={styles.rowWrap}>
+          {HOURS.map(h => (
+            <TouchableOpacity
+              key={h}
+              onPress={() => setHour(h)}
+              style={[styles.chip, hour === h && styles.activeChip]}
+            >
+              <Text style={[styles.chipText, hour === h && styles.activeChipText]}>
+                {pad2(h)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={[styles.listSub, { marginTop: 8 }]}>Minutes</Text>
+        <View style={styles.rowWrap}>
+          {[0, 15, 30, 45].map(m => (
+            <TouchableOpacity
+              key={m}
+              onPress={() => setMinute(m)}
+              style={[styles.chip, minute === m && styles.activeChip]}
+            >
+              <Text style={[styles.chipText, minute === m && styles.activeChipText]}>
+                {pad2(m)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={[styles.listTitle, { marginTop: 8 }]}>
+          {pad2(hour)}:{pad2(minute)}
+        </Text>
       </View>
 
       <View style={styles.row}>
@@ -127,7 +262,7 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
         </View>
         <View style={styles.flex}>
           <Button
-            title={creatingOrder ? "Starting payment..." : "Buy plan"}
+            title={creatingOrder ? "Starting..." : "Continue to pay"}
             onPress={handleBuyPlan}
             disabled={creatingOrder || !selectedPlan}
           />

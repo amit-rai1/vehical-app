@@ -6,13 +6,14 @@ const CUSTOMER_TABS = [
   ["home", "⌂", "Home"],
   ["services", "☰", "Services"],
   ["booking", "▦", "Book"],
-  ["addresses", "📍", "Address"],
-  ["track", "◎", "Track"]
+  ["track", "◎", "Track"],
+  ["account", "☺", "Account"]
 ];
 
 const PARTNER_TABS = [
   ["jobs", "▦", "Jobs"],
-  ["schedule", "📅", "Today"]
+  ["schedule", "📅", "Today"],
+  ["account", "☺", "Account"]
 ];
 
 export function BottomTabs({

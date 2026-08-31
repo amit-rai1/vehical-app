@@ -4,9 +4,11 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import { clearAuthToken } from "./src/api/client";
 import { BottomTabs } from "./src/components/BottomTabs";
 import { AuthScreen } from "./src/screens/AuthScreen";
+import { AccountScreen } from "./src/screens/AccountScreen";
 import { AddressesScreen } from "./src/screens/AddressesScreen";
 import { BookingScreen } from "./src/screens/BookingScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
+import { HelpScreen } from "./src/screens/HelpScreen";
 import { PartnerJobDetailScreen } from "./src/screens/PartnerJobDetailScreen";
 import { PartnerJobsScreen } from "./src/screens/PartnerJobsScreen";
 import { PlanDetailScreen } from "./src/screens/PlanDetailScreen";
@@ -49,6 +51,10 @@ function AppShell() {
     setRefreshKey(key => key + 1);
   }
 
+  function patchUser(partial) {
+    setUser(current => (current ? { ...current, ...partial } : current));
+  }
+
   const content = useMemo(() => {
     if (!user) {
       return <AuthScreen onSignedIn={setUser} />;
@@ -68,12 +74,32 @@ function AppShell() {
         );
       }
 
+      if (partnerTab === "account") {
+        return (
+          <AccountScreen
+            user={user}
+            refreshKey={refreshKey}
+            onLogout={handleLogout}
+            onUserUpdated={patchUser}
+            onNavigate={next => {
+              if (next === "jobs") {
+                setPartnerTab("jobs");
+                setScreen("root");
+              }
+            }}
+            onOpenJob={id => {
+              setSelectedPartnerJobId(id);
+              setScreen("partnerJobDetail");
+            }}
+          />
+        );
+      }
+
       return (
         <PartnerJobsScreen
           user={user}
           refreshKey={refreshKey}
           todayOnly={partnerTab === "schedule"}
-          onLogout={handleLogout}
           onOpenJob={id => {
             setSelectedPartnerJobId(id);
             setScreen("partnerJobDetail");
@@ -151,6 +177,32 @@ function AppShell() {
       return <TrackScreen refreshKey={refreshKey} />;
     }
 
+    if (tab === "help") {
+      return (
+        <HelpScreen
+          onBack={() => {
+            setTab("account");
+            setScreen("root");
+          }}
+        />
+      );
+    }
+
+    if (tab === "account") {
+      return (
+        <AccountScreen
+          user={user}
+          refreshKey={refreshKey}
+          onLogout={handleLogout}
+          onUserUpdated={patchUser}
+          onNavigate={next => {
+            setTab(next);
+            setScreen("root");
+          }}
+        />
+      );
+    }
+
     return (
       <HomeScreen
         user={user}
@@ -159,14 +211,8 @@ function AppShell() {
           setTab(next);
           setScreen("root");
         }}
-        onLogout={handleLogout}
         onOpenServices={() => {
           setTab("services");
-          setScreen("root");
-        }}
-        onBookWithPlan={planId => {
-          setPendingBookingPlanId(planId);
-          setTab("booking");
           setScreen("root");
         }}
       />
@@ -200,7 +246,7 @@ function AppShell() {
           variant="customer"
           bottomInset={Math.max(insets.bottom, 12)}
           activeTab={
-            ["home", "services", "booking", "addresses", "track"].includes(tab) ? tab : "home"
+            ["home", "services", "booking", "track", "account"].includes(tab) ? tab : "home"
           }
           onChange={next => {
             setTab(next);
@@ -212,7 +258,9 @@ function AppShell() {
         <BottomTabs
           variant="partner"
           bottomInset={Math.max(insets.bottom, 12)}
-          activeTab={["jobs", "schedule"].includes(partnerTab) ? partnerTab : "jobs"}
+          activeTab={
+            ["jobs", "schedule", "account"].includes(partnerTab) ? partnerTab : "jobs"
+          }
           onChange={next => {
             setPartnerTab(next);
             setScreen("root");

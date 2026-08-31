@@ -13,10 +13,13 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
   const currency = payment?.currency || "INR";
   const orderId = payment?.razorpayOrderId;
   const keyId = payment?.keyId;
+  const amountLabel = Number.isFinite(Number(amount))
+    ? `₹${Number(amount).toLocaleString("en-IN")}`
+    : null;
 
   async function handlePay() {
     if (!orderId || !keyId) {
-      Alert.alert("Payment error", "Missing Razorpay order details.");
+      Alert.alert("Payment error", "Missing payment order details.");
       return;
     }
 
@@ -29,7 +32,7 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
         key: keyId,
         amount: String(amountInSubunits),
         currency,
-        name: "Vehicle Service Management",
+        name: "Marker",
         description: paymentInfo?.plan?.name || "Service plan purchase",
         order_id: orderId,
         prefill: {
@@ -43,13 +46,18 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
 
       const data = await RazorpayCheckout.open(options);
 
-      await paymentApi.confirmRazorpay({
+      const confirm = await paymentApi.confirmRazorpay({
         razorpayOrderId: data.razorpay_order_id,
         razorpayPaymentId: data.razorpay_payment_id,
         razorpaySignature: data.razorpay_signature
       });
 
-      Alert.alert("Payment success", "Your plan has been activated.");
+      const message =
+        confirm?.data?.activationMessage ||
+        confirm?.message ||
+        "Thanks for purchasing the plan.";
+
+      Alert.alert("Purchase successful", message);
       onPaymentSuccess?.();
     } catch (error) {
       if (error && typeof error === "object" && "code" in error) {
@@ -67,17 +75,22 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-      <Header title="Complete payment" subtitle="Securely pay for your service plan." />
+      <Header title="Review & pay" subtitle="Confirm your plan purchase." />
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>Order summary</Text>
-        <Text style={styles.listTitle}>
-          {currency} {amount ?? "--"}
+        <Text style={styles.listTitle}>{paymentInfo?.plan?.name || "Service plan"}</Text>
+        <Text style={[styles.listTitle, { marginTop: 6 }]}>
+          {amountLabel || `${currency} ${amount ?? "--"}`}
         </Text>
-        <Text style={styles.listSub}>Order ID: {orderId || "Not available"}</Text>
-        <Text style={styles.listSub}>
-          You will be redirected to Razorpay to complete your payment using card, UPI,
-          netbanking, wallet or other available methods.
+        {paymentInfo?.preferredServiceTime ? (
+          <Text style={styles.listSub}>
+            Preferred time: {paymentInfo.preferredServiceTime}
+          </Text>
+        ) : null}
+        <Text style={[styles.listSub, { marginTop: 8 }]}>
+          Your plan activates 2 days after purchase at 12:01 AM.
         </Text>
+        <Text style={styles.listSub}>Secure payment</Text>
       </View>
 
       <View style={styles.row}>
@@ -86,7 +99,13 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
         </View>
         <View style={styles.flex}>
           <Button
-            title={submitting ? "Processing..." : "Pay with Razorpay"}
+            title={
+              submitting
+                ? "Processing..."
+                : amountLabel
+                  ? `Pay ${amountLabel}`
+                  : "Complete purchase"
+            }
             onPress={handlePay}
             disabled={submitting}
           />
@@ -95,4 +114,3 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
     </ScrollView>
   );
 }
-

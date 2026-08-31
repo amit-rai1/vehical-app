@@ -7,15 +7,10 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { addressApi, bookingApi, planApi, vehicleApi } from "../api/client";
+import { bookingApi, planApi } from "../api/client";
 import { Button } from "../components/Button";
-import {
-  BookingTimePicker,
-  getDefaultBookingSchedule,
-  isPastScheduled,
-  toScheduledDate
-} from "../components/BookingTimePicker";
 import { Header } from "../components/Header";
+import { PlanCalendar } from "../components/PlanCalendar";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
 
@@ -26,72 +21,35 @@ function vehicleTypeLabel(type) {
   return "Vehicle";
 }
 
-function sameVehicleType(a, b) {
-  if (a == null || b == null || a === "" || b === "") return false;
-  const left = String(a);
-  const right = String(b);
-  if (left === right) return true;
-  const normalize = value => {
-    if (value === "1" || value === "TwoWheeler") return "2W";
-    if (value === "2" || value === "FourWheeler") return "4W";
-    if (Number(value) === 1) return "2W";
-    if (Number(value) === 2) return "4W";
-    return value;
-  };
-  return normalize(left) === normalize(right);
-}
-
 export function BookingScreen({
   onNavigate,
   refreshKey,
   pendingPlanId,
   onPendingPlanConsumed
 }) {
-  const [timeValue, setTimeValue] = useState(() => getDefaultBookingSchedule());
-  const [vehicles, setVehicles] = useState([]);
   const [plans, setPlans] = useState([]);
-  const [addresses, setAddresses] = useState([]);
-  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
-  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [planDetail, setPlanDetail] = useState(null);
+  const [bookingDate, setBookingDate] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadData();
+    loadPlans();
   }, [refreshKey]);
 
-  async function loadData() {
+  async function loadPlans() {
     setLoading(true);
     try {
-      const [vehiclesRes, plansRes, addressesRes] = await Promise.all([
-        vehicleApi.list({
-          pageNumber: 1,
-          pageSize: 50,
-          search: "",
-          isActive: true,
-          sortBy: "CreatedOn",
-          isAscending: false
-        }),
-        planApi.list({ pageNumber: 1, pageSize: 50, isActiveOnly: true }),
-        addressApi.dropdown()
-      ]);
-
-      const vehicleList =
-        vehiclesRes?.data?.records || vehiclesRes?.data?.items || vehiclesRes?.data || [];
+      const plansRes = await planApi.list({
+        pageNumber: 1,
+        pageSize: 50,
+        isActiveOnly: true
+      });
       const planList = plansRes?.data?.records || plansRes?.data?.items || plansRes?.data || [];
-      const addressList = addressesRes?.data || addressesRes || [];
-
-      const vehiclesSafe = Array.isArray(vehicleList) ? vehicleList : [];
       const plansSafe = Array.isArray(planList) ? planList : [];
-      const addressesSafe = Array.isArray(addressList) ? addressList : [];
-
-      setVehicles(vehiclesSafe);
       setPlans(plansSafe);
-      setAddresses(addressesSafe);
-
-      const defaultAddress = addressesSafe.find(a => a.isDefault) || addressesSafe[0];
-      setSelectedAddress(defaultAddress || null);
 
       if (pendingPlanId && plansSafe.some(p => p.planId === pendingPlanId)) {
         setSelectedPlanId(pendingPlanId);
@@ -100,33 +58,31 @@ export function BookingScreen({
         setSelectedPlanId(plansSafe[0].planId);
       }
     } catch (error) {
-      console.warn("Failed to load booking data:", error.message);
       Alert.alert("Unable to load booking", error.message || "Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  const selectedPlan = useMemo(
-    () => plans.find(p => p.planId === selectedPlanId) || null,
-    [plans, selectedPlanId]
-  );
-
-  const matchingVehicles = useMemo(() => {
-    if (!selectedPlan) return [];
-    return vehicles.filter(v => sameVehicleType(v.vehicleType, selectedPlan.vehicleType));
-  }, [vehicles, selectedPlan]);
-
   useEffect(() => {
-    if (!matchingVehicles.length) {
-      setSelectedVehicleId(null);
+    if (!selectedPlanId) {
+      setPlanDetail(null);
       return;
     }
-    if (!matchingVehicles.some(v => v.vehicleId === selectedVehicleId)) {
-      const def = matchingVehicles.find(v => v.isDefault) || matchingVehicles[0];
-      setSelectedVehicleId(def.vehicleId);
-    }
-  }, [matchingVehicles, selectedVehicleId]);
+    (async () => {
+      setDetailLoading(true);
+      setBookingDate(null);
+      try {
+        const res = await planApi.get(selectedPlanId);
+        setPlanDetail(res?.data || null);
+      } catch (error) {
+        setPlanDetail(null);
+        Alert.alert("Plan details", error.message || "Unable to load plan.");
+      } finally {
+        setDetailLoading(false);
+      }
+    })();
+  }, [selectedPlanId]);
 
   useEffect(() => {
     if (pendingPlanId && plans.some(p => p.planId === pendingPlanId)) {
@@ -134,6 +90,11 @@ export function BookingScreen({
       onPendingPlanConsumed?.();
     }
   }, [pendingPlanId, plans, onPendingPlanConsumed]);
+
+  const selectedPlan = useMemo(
+    () => plans.find(p => p.planId === selectedPlanId) || null,
+    [plans, selectedPlanId]
+  );
 
   async function handleConfirm() {
     if (!selectedPlanId) {
@@ -143,37 +104,16 @@ export function BookingScreen({
       ]);
       return;
     }
-    if (!selectedVehicleId) {
-      Alert.alert(
-        "Add a matching vehicle",
-        `Add a ${vehicleTypeLabel(selectedPlan?.vehicleType)} vehicle to book with this plan.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Add vehicle", onPress: () => onNavigate("vehicles") }
-        ]
-      );
-      return;
-    }
-    if (!selectedAddress?.addressId) {
-      Alert.alert("Select address", "Please add or select a pickup address.");
-      return;
-    }
-
-    if (isPastScheduled(timeValue)) {
-      Alert.alert(
-        "Invalid date & time",
-        "Please select a date and time that is not in the past."
-      );
+    if (!bookingDate) {
+      Alert.alert("Select date", "Please choose a service date from the calendar.");
       return;
     }
 
     setSubmitting(true);
     try {
       await bookingApi.create({
-        vehicleId: selectedVehicleId,
-        addressId: selectedAddress.addressId,
         customerPlanId: selectedPlanId,
-        scheduledAt: toScheduledDate(timeValue).toISOString(),
+        bookingDate,
         notes: null
       });
       Alert.alert(
@@ -200,7 +140,7 @@ export function BookingScreen({
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
       <Header
         title="Book Service"
-        subtitle="1) Active plan → 2) Matching vehicle → 3) Address & time"
+        subtitle="Select plan → pick a date in your plan window"
       />
 
       <View style={styles.panel}>
@@ -209,7 +149,7 @@ export function BookingScreen({
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No active plan yet</Text>
             <Text style={styles.emptySub}>
-              Browse services and buy a 2W or 4W plan, then book anytime with any matching vehicle.
+              Buy a plan first. After it activates, you can book service dates here.
             </Text>
             <TouchableOpacity
               style={styles.emptyCta}
@@ -234,7 +174,9 @@ export function BookingScreen({
                 <View style={styles.addressChipRow}>
                   <Text style={styles.listTitle}>{plan.planName}</Text>
                   <View style={styles.typeBadge}>
-                    <Text style={styles.typeBadgeText}>{vehicleTypeLabel(plan.vehicleType)}</Text>
+                    <Text style={styles.typeBadgeText}>
+                      {vehicleTypeLabel(plan.vehicleType)}
+                    </Text>
                   </View>
                 </View>
                 <Text style={styles.listSub}>
@@ -247,94 +189,49 @@ export function BookingScreen({
         )}
       </View>
 
-      <View style={styles.panel}>
-        <Text style={styles.stepLabel}>Step 2 · Vehicle ({vehicleTypeLabel(selectedPlan?.vehicleType)})</Text>
-        {!selectedPlan ? (
-          <Text style={styles.emptySub}>Select a plan first to see matching vehicles.</Text>
-        ) : matchingVehicles.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>
-              No {vehicleTypeLabel(selectedPlan.vehicleType)} vehicles
-            </Text>
-            <Text style={styles.emptySub}>
-              This plan covers all your {vehicleTypeLabel(selectedPlan.vehicleType)} vehicles. Add
-              one to continue.
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyCta}
-              onPress={() => onNavigate("vehicles")}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.emptyCtaText}>Add vehicle</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          matchingVehicles.map(v => (
-            <TouchableOpacity
-              key={v.vehicleId}
-              onPress={() => setSelectedVehicleId(v.vehicleId)}
-              style={[
-                styles.addressPreview,
-                selectedVehicleId === v.vehicleId && styles.selectedAddress
-              ]}
-            >
-              <View style={styles.addressChipRow}>
-                <Text style={styles.listTitle}>{v.vehicleNumber || "Vehicle"}</Text>
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText}>{vehicleTypeLabel(v.vehicleType)}</Text>
-                </View>
-              </View>
+      {selectedPlan ? (
+        <View style={styles.panel}>
+          <Text style={styles.stepLabel}>Locked for this plan</Text>
+          {detailLoading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <>
               <Text style={styles.listSub}>
-                {v.vehicleMakeName} {v.vehicleModelName}
+                Vehicle: {planDetail?.vehicleName || selectedPlan.vehicleName || "—"}
               </Text>
-            </TouchableOpacity>
-          ))
-        )}
-      </View>
+              <Text style={styles.listSub}>
+                Address: {planDetail?.addressSummary || "—"}
+              </Text>
+              <Text style={styles.listSub}>
+                Time: {planDetail?.preferredServiceTime || selectedPlan.preferredServiceTime || "—"}
+              </Text>
+            </>
+          )}
+        </View>
+      ) : null}
 
-      <View style={styles.panel}>
-        <Text style={styles.stepLabel}>Step 3 · Address & time</Text>
-        <Text style={styles.panelTitle}>Select time</Text>
-        <BookingTimePicker value={timeValue} onChange={setTimeValue} />
+      {selectedPlan && planDetail ? (
+        <View style={styles.panel}>
+          <Text style={styles.stepLabel}>Step 2 · Choose service date</Text>
+          <PlanCalendar
+            startDate={planDetail.startDate}
+            endDate={planDetail.endDate}
+            completedDates={planDetail.completedServiceDates}
+            scheduledDates={planDetail.scheduledServiceDates}
+            selectedDate={bookingDate}
+            onSelectDate={setBookingDate}
+          />
+          {bookingDate ? (
+            <Text style={[styles.listTitle, { marginTop: 8 }]}>Selected: {bookingDate}</Text>
+          ) : null}
+        </View>
+      ) : null}
 
-        <Text style={styles.panelTitle}>Pickup Address</Text>
-        {addresses.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptySub}>No addresses found. Add a pickup address to continue.</Text>
-            <TouchableOpacity
-              style={styles.emptyCta}
-              onPress={() => onNavigate("addresses")}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.emptyCtaText}>Add address</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          addresses.map(address => (
-            <TouchableOpacity
-              key={address.addressId}
-              onPress={() => setSelectedAddress(address)}
-              style={[
-                styles.addressPreview,
-                selectedAddress?.addressId === address.addressId && styles.selectedAddress
-              ]}
-            >
-              <View style={styles.addressChipRow}>
-                <Text style={styles.listTitle}>{address.addressType}</Text>
-                {address.isDefault ? <Text style={styles.defaultPill}>Default</Text> : null}
-              </View>
-              <Text style={styles.listSub}>{address.fullAddress}</Text>
-            </TouchableOpacity>
-          ))
-        )}
-
-        <Button
-          title={submitting ? "Booking..." : "Confirm Booking"}
-          onPress={handleConfirm}
-          disabled={submitting || !plans.length || !matchingVehicles.length}
-          loading={submitting}
-        />
-      </View>
+      <Button
+        title={submitting ? "Booking..." : "Confirm booking"}
+        onPress={handleConfirm}
+        disabled={submitting || !selectedPlanId || !bookingDate}
+      />
     </ScrollView>
   );
 }

@@ -4,6 +4,12 @@
     "slug": "vehicle-service-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
       "**/*"
@@ -20,7 +26,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#4f35d8"
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#ffffff"
       },
       "package": "com.anonymous.vehicleservicemobile",
       "permissions": [

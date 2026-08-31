@@ -68,6 +68,32 @@ export const styles = StyleSheet.create({
     flexShrink: 1,
     paddingRight: 4
   },
+  headerLogo: {
+    width: 52,
+    height: 52,
+    resizeMode: "contain",
+    borderRadius: 10
+  },
+  otpLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    gap: 12
+  },
+  otpLinkLeft: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  otpLinkRight: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  otpLinkDisabled: {
+    opacity: 0.45
+  },
   greeting: {
     color: colors.primary,
     fontSize: 12,
@@ -304,6 +330,99 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
     ...softShadow
+  },
+  quickActionDisabled: {
+    opacity: 0.45
+  },
+  locationBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+    gap: 10,
+    ...softShadow
+  },
+  locationBarIcon: {
+    fontSize: 18
+  },
+  locationBarText: {
+    flex: 1
+  },
+  locationBarTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  locationBarSub: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2
+  },
+  locationBarChevron: {
+    color: colors.muted,
+    fontSize: 12
+  },
+  bannerWrap: {
+    marginBottom: 16
+  },
+  bannerImage: {
+    width: "100%",
+    height: 140,
+    borderRadius: 16,
+    backgroundColor: "#e2e8f0"
+  },
+  bannerDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 8
+  },
+  bannerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#cbd5e1"
+  },
+  bannerDotActive: {
+    backgroundColor: colors.primary,
+    width: 16
+  },
+  unserviceableCard: {
+    backgroundColor: "#fff7ed",
+    borderColor: "#fdba74",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16
+  },
+  unserviceableTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 6
+  },
+  unserviceableSub: {
+    color: colors.muted,
+    fontSize: 13,
+    marginBottom: 10,
+    lineHeight: 18
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.45)",
+    justifyContent: "flex-end"
+  },
+  modalSheet: {
+    backgroundColor: colors.paper,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 28
   },
   quickIcon: {
     fontSize: 24,

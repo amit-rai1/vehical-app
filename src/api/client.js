@@ -86,10 +86,14 @@ export const vehicleApi = {
 };
 
 export const addressApi = {
-  list: () =>
+  list: (body = {}) =>
     request("/api/customer/address/list", {
       method: "POST",
-      body: {}
+      body: {
+        pageNumber: 1,
+        pageSize: 100,
+        ...body
+      }
     }),
   details: id => request(`/api/customer/address/${id}`),
   dropdown: () => request("/api/customer/address/dropdown"),
@@ -104,7 +108,11 @@ export const addressApi = {
       body
     }),
   remove: id => request(`/api/customer/address/${id}`, { method: "DELETE" }),
-  makeDefault: id => request(`/api/customer/address/${id}/default`, { method: "PATCH" })
+  makeDefault: id =>
+    request(`/api/customer/address/${id}/default`, {
+      method: "PATCH",
+      body: { isDefault: true }
+    })
 };
 
 export const catalogApi = {

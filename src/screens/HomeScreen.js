@@ -143,61 +143,72 @@ export function HomeScreen({
     try {
       const [plansResponse, vehiclesResponse, addressesResponse, bannersResponse] =
         await Promise.all([
-          planApi.list({ pageNumber: 1, pageSize: 50 }),
-          vehicleApi.list({
-            pageNumber: 1,
-            pageSize: 20,
-            search: "",
-            isActive: true,
-            sortBy: "CreatedOn",
-            isAscending: false
+          planApi.list({ pageNumber: 1, pageSize: 50 }).catch(err => {
+            console.warn("Failed to load plans:", err.message);
+            return null;
           }),
-          addressApi.list(),
+          vehicleApi
+            .list({
+              pageNumber: 1,
+              pageSize: 20,
+              search: "",
+              isActive: true,
+              sortBy: "CreatedOn",
+              isAscending: false
+            })
+            .catch(err => {
+              console.warn("Failed to load vehicles:", err.message);
+              return null;
+            }),
+          addressApi.list({ pageNumber: 1, pageSize: 100 }).catch(err => {
+            console.warn("Failed to load addresses:", err.message);
+            return null;
+          }),
           bannerApi.list().catch(() => ({ data: [] }))
         ]);
 
-      const planRecords =
-        plansResponse?.data?.records ||
-        plansResponse?.data?.items ||
-        plansResponse?.data ||
-        [];
-      const vehicleRecords =
-        vehiclesResponse?.data?.records ||
-        vehiclesResponse?.data?.items ||
-        vehiclesResponse?.data ||
-        [];
-      const addressRecords =
-        addressesResponse?.data?.records ||
-        addressesResponse?.data?.items ||
-        addressesResponse?.data ||
-        [];
-      const bannerRecords = bannersResponse?.data || [];
+      function asRecords(payload) {
+        if (!payload) return null;
+        const data = payload.data;
+        const rows = data?.records ?? data?.items ?? data;
+        return Array.isArray(rows) ? rows : [];
+      }
 
-      setPlans(Array.isArray(planRecords) ? planRecords : []);
-      setVehicles(Array.isArray(vehicleRecords) ? vehicleRecords : []);
-      const addrSafe = Array.isArray(addressRecords) ? addressRecords : [];
-      setAddresses(addrSafe);
+      if (plansResponse) {
+        setPlans(asRecords(plansResponse) || []);
+      }
+      if (vehiclesResponse) {
+        setVehicles(asRecords(vehiclesResponse) || []);
+      }
+
+      let addrSafe = null;
+      if (addressesResponse) {
+        addrSafe = asRecords(addressesResponse) || [];
+        setAddresses(addrSafe);
+      }
+
+      const bannerRecords = bannersResponse?.data || [];
       setBanners(Array.isArray(bannerRecords) ? bannerRecords : []);
 
-      const def = addrSafe.find(a => a.isDefault) || addrSafe[0] || null;
-      let nextSelectedId = null;
-      setSelectedAddressId(prev => {
-        const stillValid =
-          prev != null && addrSafe.some(a => (a.addressId ?? a.id) === prev);
-        nextSelectedId = stillValid ? prev : def ? def.addressId ?? def.id : null;
-        return nextSelectedId;
-      });
-      const pinSource =
-        addrSafe.find(a => (a.addressId ?? a.id) === nextSelectedId) || def;
-      if (pinSource?.pincode) {
-        await checkPincode(pinSource.pincode);
-      } else {
-        setServiceable(true);
+      if (addrSafe) {
+        const def = addrSafe.find(a => a.isDefault) || addrSafe[0] || null;
+        let nextSelectedId = null;
+        setSelectedAddressId(prev => {
+          const stillValid =
+            prev != null && addrSafe.some(a => (a.addressId ?? a.id) === prev);
+          nextSelectedId = stillValid ? prev : def ? def.addressId ?? def.id : null;
+          return nextSelectedId;
+        });
+        const pinSource =
+          addrSafe.find(a => (a.addressId ?? a.id) === nextSelectedId) || def;
+        if (pinSource?.pincode) {
+          await checkPincode(pinSource.pincode);
+        } else {
+          setServiceable(true);
+        }
       }
     } catch (err) {
       console.warn("Failed to load dashboard:", err.message);
-      setPlans([]);
-      setVehicles([]);
     } finally {
       hideLoading();
       setLoading(false);
@@ -302,7 +313,7 @@ export function HomeScreen({
         <Text style={styles.locationBarIcon}>📍</Text>
         <View style={styles.locationBarText}>
           <Text style={styles.locationBarTitle} numberOfLines={1}>
-            {selectedAddress ? addressLabel(selectedAddress) : "Add delivery address"}
+            {selectedAddress ? addressLabel(selectedAddress) : "Add service address"}
           </Text>
           <Text style={styles.locationBarSub}>
             {checkingPin
@@ -408,9 +419,9 @@ export function HomeScreen({
 
       {loading ? null : plans.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>You don’t have any plan yet</Text>
+          <Text style={styles.emptyTitle}>No plans on this account yet</Text>
           <Text style={styles.emptySub}>
-            Purchase a plan with vehicle, address, and preferred time. It activates after 2 days.
+            Purchase a plan with vehicle, address, and preferred time. New plans activate after 2 days and will show here once purchased.
           </Text>
           <TouchableOpacity
             style={[styles.emptyCta, !serviceable && { opacity: 0.5 }]}

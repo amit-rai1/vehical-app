@@ -2305,3 +2305,9 @@
 {"_e":"metro:bundling:done","_t":1788373958611,"id":"3","total":768,"ms":9145.5026}
 {"_e":"metro:client_log","_t":1788373960982,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
 {"_e":"metro:client_log","_t":1788373989303,"level":"warn","data":["Failed to load dashboard:","Something went wrong. Please contact administrator."]}
+{"_e":"root:init","_t":1788520327740,"format":"v0-jsonl","version":"57.0.10"}
+{"_e":"env:mode","_t":1788520327742,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788520327745,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1788520333972,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788520340931,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788520345003,"plugins":[]}

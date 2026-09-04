@@ -60,7 +60,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
     gap: 12
   },
   headerTextBlock: {
@@ -69,9 +69,8 @@ export const styles = StyleSheet.create({
     paddingRight: 4
   },
   headerLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 34,
     resizeMode: "contain",
     backgroundColor: "#fff"
   },
@@ -121,7 +120,7 @@ export const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 16,
-    backgroundColor: "#ede9fe",
+    backgroundColor: colors.primaryWash,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -340,7 +339,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.primaryBorder,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -365,8 +364,9 @@ export const styles = StyleSheet.create({
     marginTop: 2
   },
   locationBarChevron: {
-    color: colors.muted,
-    fontSize: 12
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "800"
   },
   bannerWrap: {
     marginBottom: 16
@@ -475,7 +475,7 @@ export const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "#ede9fe",
+    backgroundColor: colors.primaryWash,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -514,7 +514,7 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: "#ede9fe",
+    backgroundColor: colors.primaryWash,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14
@@ -671,7 +671,7 @@ export const styles = StyleSheet.create({
   },
   countPill: {
     color: colors.primary,
-    backgroundColor: "#ede9fe",
+    backgroundColor: colors.primaryWash,
     borderRadius: 14,
     overflow: "hidden",
     paddingHorizontal: 12,
@@ -1031,7 +1031,7 @@ export const styles = StyleSheet.create({
     fontWeight: "800"
   },
   typeBadge: {
-    backgroundColor: "#ede9fe",
+    backgroundColor: colors.primaryWash,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4
@@ -1178,7 +1178,7 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#f5f3ff",
     borderWidth: 1,
-    borderColor: "#ddd6fe"
+    borderColor: colors.primaryBorder
   },
   primaryCta: {
     marginTop: 14,
@@ -1305,7 +1305,7 @@ export const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: "#ede9fe",
+    backgroundColor: colors.primaryWash,
     borderWidth: 1.5,
     borderColor: colors.line,
     alignItems: "center",

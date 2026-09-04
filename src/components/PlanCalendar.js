@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles/appStyles";
+import { colors } from "../theme";
 
 function toYmdKey(value) {
   if (value == null) return null;
@@ -159,11 +160,11 @@ export function PlanCalendar({
                 justifyContent: "center",
                 borderRadius: 8,
                 backgroundColor: selected
-                  ? "#4f46e5"
+                  ? colors.primary
                   : completed
                     ? "#dcfce7"
                     : scheduled
-                      ? "#e0e7ff"
+                      ? colors.primaryWash
                       : "transparent",
                 opacity: muted ? 0.35 : 1
               }}
@@ -181,7 +182,7 @@ export function PlanCalendar({
                   style={{
                     fontSize: 10,
                     fontWeight: "800",
-                    color: selected ? "#e0e7ff" : completed ? "#166534" : "#3730a3",
+                    color: selected ? colors.primaryWash : completed ? "#166534" : colors.primaryDark,
                     marginTop: -1
                   }}
                 >

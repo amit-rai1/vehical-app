@@ -258,7 +258,7 @@ export function AccountScreen({
                     width: 56,
                     height: 56,
                     borderRadius: 28,
-                    backgroundColor: "#ede9fe",
+                    backgroundColor: colors.primaryWash,
                     alignItems: "center",
                     justifyContent: "center"
                   }}

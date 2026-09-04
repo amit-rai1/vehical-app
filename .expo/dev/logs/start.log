@@ -2271,3 +2271,37 @@
 {"_e":"metro:bundling:progress","_t":1788181055897,"id":"3","progress":0.999,"total":703,"current":703}
 {"_e":"metro:bundling:done","_t":1788181056024,"id":"3","total":703,"ms":858.4317}
 {"_e":"metro:client_log","_t":1788181058506,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"root:init","_t":1788373714544,"format":"v0-jsonl","version":"57.0.10"}
+{"_e":"env:mode","_t":1788373714546,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1788373714551,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1788373727929,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1788373750886,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1788373756914,"plugins":[]}
+{"_e":"metro:instantiate","_t":1788373777860,"atlas":false,"workers":8,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1788373949465,"id":"3","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1788373949467,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788373949482,"id":"3","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1788373949586,"id":"3","progress":0.018261504747991236,"total":37,"current":5}
+{"_e":"metro:bundling:progress","_t":1788373949686,"id":"3","progress":0.04000000000000001,"total":165,"current":33}
+{"_e":"metro:bundling:progress","_t":1788373949786,"id":"3","progress":0.12456747404844293,"total":238,"current":84}
+{"_e":"metro:bundling:progress","_t":1788373949887,"id":"3","progress":0.26538108356290174,"total":297,"current":153}
+{"_e":"metro:bundling:progress","_t":1788373949990,"id":"3","progress":0.26538108356290174,"total":362,"current":186}
+{"_e":"metro:bundling:progress","_t":1788373950092,"id":"3","progress":0.31116664352815954,"total":441,"current":246}
+{"_e":"metro:bundling:progress","_t":1788373950191,"id":"3","progress":0.3421620996647011,"total":465,"current":272}
+{"_e":"metro:bundling:progress","_t":1788373950292,"id":"3","progress":0.43191290645096264,"total":493,"current":324}
+{"_e":"metro:bundling:progress","_t":1788373950401,"id":"3","progress":0.46322774653385196,"total":526,"current":358}
+{"_e":"metro:bundling:progress","_t":1788373950501,"id":"3","progress":0.5666899296582414,"total":538,"current":405}
+{"_e":"metro:bundling:progress","_t":1788373950601,"id":"3","progress":0.6775013358704011,"total":554,"current":456}
+{"_e":"metro:bundling:progress","_t":1788373950701,"id":"3","progress":0.6775013358704011,"total":586,"current":475}
+{"_e":"metro:bundling:progress","_t":1788373950809,"id":"3","progress":0.7281777777777779,"total":600,"current":512}
+{"_e":"metro:bundling:progress","_t":1788373950908,"id":"3","progress":0.778379292403746,"total":620,"current":547}
+{"_e":"metro:bundling:progress","_t":1788373951008,"id":"3","progress":0.778379292403746,"total":658,"current":570}
+{"_e":"metro:bundling:progress","_t":1788373951108,"id":"3","progress":0.8369233788189832,"total":728,"current":666}
+{"_e":"metro:bundling:progress","_t":1788373951208,"id":"3","progress":0.971448588149857,"total":765,"current":754}
+{"_e":"metro:bundling:progress","_t":1788373951318,"id":"3","progress":0.9740270836003248,"total":765,"current":755}
+{"_e":"metro:bundling:progress","_t":1788373958027,"id":"3","progress":0.9766089965397925,"total":765,"current":756}
+{"_e":"metro:bundling:progress","_t":1788373958132,"id":"3","progress":0.9843955579491304,"total":766,"current":760}
+{"_e":"metro:bundling:progress","_t":1788373958306,"id":"3","progress":0.999,"total":768,"current":768}
+{"_e":"metro:bundling:done","_t":1788373958611,"id":"3","total":768,"ms":9145.5026}
+{"_e":"metro:client_log","_t":1788373960982,"level":"warn","data":["SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context"]}
+{"_e":"metro:client_log","_t":1788373989303,"level":"warn","data":["Failed to load dashboard:","Something went wrong. Please contact administrator."]}

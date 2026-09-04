@@ -1,16 +1,51 @@
-import React from "react";
-import { ActivityIndicator, Image, Modal, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { colors, softShadow } from "../theme";
 
 const logoSource = require("../../assets/logo.png");
 
 export function GlobalLoader({ visible, message }) {
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!visible) {
+      pulse.setValue(1);
+      return undefined;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1.06,
+          duration: 700,
+          useNativeDriver: true
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true
+        })
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [visible, pulse]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
       <View style={styles.backdrop} pointerEvents="auto">
         <View style={styles.card}>
-          <Image source={logoSource} style={styles.logo} />
-          <ActivityIndicator size="small" color={colors.primary} />
+          <Animated.View style={{ transform: [{ scale: pulse }] }}>
+            <Image source={logoSource} style={styles.logo} accessibilityLabel="App logo" />
+          </Animated.View>
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.message}>{message || "Just a moment…"}</Text>
         </View>
       </View>
@@ -21,7 +56,7 @@ export function GlobalLoader({ visible, message }) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    backgroundColor: "rgba(232, 241, 251, 0.92)",
     alignItems: "center",
     justifyContent: "center",
     padding: 28
@@ -33,17 +68,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     minWidth: 200,
     alignItems: "center",
-    gap: 12,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
     ...softShadow
   },
   logo: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    resizeMode: "contain"
+    width: 88,
+    height: 76,
+    resizeMode: "contain",
+    backgroundColor: "#fff"
   },
   message: {
-    color: colors.ink,
+    color: colors.primaryDark,
     fontSize: 15,
     fontWeight: "700",
     textAlign: "center"

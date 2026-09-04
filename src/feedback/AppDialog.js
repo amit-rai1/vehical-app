@@ -5,7 +5,7 @@ import { colors, softShadow } from "../theme";
 const TYPE_META = {
   success: { icon: "✓", color: colors.success, bg: "#ecfdf5" },
   error: { icon: "!", color: colors.danger, bg: "#fff1f2" },
-  info: { icon: "i", color: colors.primary, bg: "#ede9fe" },
+  info: { icon: "i", color: colors.primary, bg: colors.primaryWash },
   confirm: { icon: "?", color: colors.coral, bg: "#fff7ed" }
 };
 

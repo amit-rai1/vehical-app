@@ -431,11 +431,10 @@ export function AuthScreen({ onSignedIn }) {
             source={require("../../assets/logo.png")}
             style={{
               width: 112,
-              height: 112,
-              borderRadius: 56,
+              height: 96,
               resizeMode: "contain",
               alignSelf: "center",
-              marginBottom: 20,
+              marginBottom: 18,
               backgroundColor: "#fff"
             }}
             accessibilityLabel="App logo"

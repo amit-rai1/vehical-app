@@ -43,7 +43,7 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
           email: "",
           contact: user?.mobileNumber ? `+91${user.mobileNumber}` : ""
         },
-        theme: { color: "#6d28d9" },
+        theme: { color: "#386FC9" },
         retry: { enabled: true, max_count: 4 }
       };
 

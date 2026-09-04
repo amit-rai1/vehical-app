@@ -294,8 +294,6 @@ export function HomeScreen({
         />
       }
     >
-      <Header title={`Hello, ${user?.name || "Customer"}`} />
-
       <TouchableOpacity
         style={styles.locationBar}
         onPress={() => setPickerOpen(true)}
@@ -316,6 +314,8 @@ export function HomeScreen({
         </View>
         <Text style={styles.locationBarChevron}>▼</Text>
       </TouchableOpacity>
+
+      <Header title={`Hello, ${user?.name || "Customer"}`} />
 
       {banners.length > 0 ? (
         <View style={styles.bannerWrap}>

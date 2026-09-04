@@ -4,25 +4,27 @@ export const colors = {
   line: "#e2e8f0",
   paper: "#ffffff",
   wash: "#f1f5f9",
-  primary: "#6d28d9",
-  primaryDark: "#5b21b6",
-  primaryLight: "#a78bfa",
+  primary: "#386FC9",
+  primaryDark: "#103675",
+  primaryLight: "#8FB4E8",
   teal: "#0d9488",
   coral: "#f97316",
   yellow: "#f59e0b",
   success: "#059669",
   danger: "#e11d48",
   card: "#ffffff",
-  accent: "#8b5cf6"
+  accent: "#4A82D4",
+  primaryWash: "#E8F1FB",
+  primaryBorder: "#C5D9F2"
 };
 
 export const gradients = {
-  primary: ["#7c3aed", "#5b21b6"],
+  primary: ["#4A82D4", "#103675"],
   card: ["#ffffff", "#f8fafc"]
 };
 
 export const shadow = {
-  shadowColor: "#6d28d9",
+  shadowColor: "#386FC9",
   shadowOpacity: 0.12,
   shadowRadius: 16,
   shadowOffset: { width: 0, height: 8 },

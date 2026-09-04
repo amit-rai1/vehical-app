@@ -613,14 +613,26 @@ export const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 2
   },
+  tabButtonCompact: {
+    minWidth: 0,
+    flex: 1,
+    paddingHorizontal: 0
+  },
   tabIcon: {
     fontSize: 20,
     marginBottom: 4
+  },
+  tabIconCompact: {
+    fontSize: 16,
+    marginBottom: 2
   },
   tabLabel: {
     color: colors.muted,
     fontSize: 11,
     fontWeight: "700"
+  },
+  tabLabelCompact: {
+    fontSize: 9
   },
   activeTab: {
     color: colors.primary
@@ -1233,7 +1245,7 @@ export const styles = StyleSheet.create({
     color: "#f59e0b"
   },
   tabButtonActive: {
-    backgroundColor: "#f5f3ff",
+    backgroundColor: colors.primaryWash,
     borderRadius: 14
   },
   buttonDisabled: {

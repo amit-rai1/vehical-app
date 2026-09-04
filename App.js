@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StatusBar, View } from "react-native";
+import { BackHandler, StatusBar, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { clearAuthToken } from "./src/api/client";
@@ -22,6 +22,16 @@ import { colors } from "./src/theme";
 import { FeedbackProvider } from "./src/feedback";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const CUSTOMER_TAB_KEYS = [
+  "home",
+  "services",
+  "booking",
+  "vehicles",
+  "addresses",
+  "track",
+  "account"
+];
 
 function isPartner(user) {
   return String(user?.roleName || "").toLowerCase().includes("partner");
@@ -59,9 +69,66 @@ function AppShell() {
     setUser(current => (current ? { ...current, ...partial } : current));
   }
 
+  useEffect(() => {
+    const onHardwareBack = () => {
+      if (!user) {
+        return false;
+      }
+
+      if (isPartner(user)) {
+        if (screen === "partnerJobDetail") {
+          setSelectedPartnerJobId(null);
+          setScreen("root");
+          return true;
+        }
+        if (partnerTab !== "jobs") {
+          setPartnerTab("jobs");
+          setScreen("root");
+          return true;
+        }
+        return false;
+      }
+
+      if (screen === "payment") {
+        setScreen("planDetail");
+        return true;
+      }
+      if (screen === "planDetail") {
+        setScreen("root");
+        return true;
+      }
+
+      if (tab === "help") {
+        setTab("account");
+        setScreen("root");
+        return true;
+      }
+
+      if (tab !== "home") {
+        setTab("home");
+        setScreen("root");
+        return true;
+      }
+
+      return false;
+    };
+
+    const sub = BackHandler.addEventListener("hardwareBackPress", onHardwareBack);
+    return () => sub.remove();
+  }, [user, screen, tab, partnerTab]);
+
   const content = useMemo(() => {
     if (!user) {
-      return <AuthScreen onSignedIn={setUser} />;
+      return (
+        <AuthScreen
+          onSignedIn={nextUser => {
+            setUser(nextUser);
+            setTab("home");
+            setScreen("root");
+            bumpRefresh();
+          }}
+        />
+      );
     }
 
     if (isPartner(user)) {
@@ -249,9 +316,7 @@ function AppShell() {
         <BottomTabs
           variant="customer"
           bottomInset={Math.max(insets.bottom, 12)}
-          activeTab={
-            ["home", "services", "booking", "track", "account"].includes(tab) ? tab : "home"
-          }
+          activeTab={CUSTOMER_TAB_KEYS.includes(tab) ? tab : "home"}
           onChange={next => {
             setTab(next);
             setScreen("root");

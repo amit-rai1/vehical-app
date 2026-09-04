@@ -6,6 +6,8 @@ const CUSTOMER_TABS = [
   ["home", "⌂", "Home"],
   ["services", "☰", "Services"],
   ["booking", "▦", "Book"],
+  ["vehicles", "🚗", "Vehicles"],
+  ["addresses", "📍", "Address"],
   ["track", "◎", "Track"],
   ["account", "☺", "Account"]
 ];
@@ -23,6 +25,7 @@ export function BottomTabs({
   variant = "customer"
 }) {
   const tabs = variant === "partner" ? PARTNER_TABS : CUSTOMER_TABS;
+  const compact = tabs.length > 5;
 
   return (
     <View style={[styles.tabBar, { bottom: bottomInset }]}>
@@ -32,11 +35,22 @@ export function BottomTabs({
           <TouchableOpacity
             key={key}
             onPress={() => onChange(key)}
-            style={[styles.tabButton, active && styles.tabButtonActive]}
+            style={[
+              styles.tabButton,
+              compact && styles.tabButtonCompact,
+              active && styles.tabButtonActive
+            ]}
             activeOpacity={0.7}
           >
-            <Text style={[styles.tabIcon, active && styles.activeTab]}>{icon}</Text>
-            <Text style={[styles.tabLabel, active && styles.activeTab]}>{label}</Text>
+            <Text style={[styles.tabIcon, compact && styles.tabIconCompact, active && styles.activeTab]}>
+              {icon}
+            </Text>
+            <Text
+              style={[styles.tabLabel, compact && styles.tabLabelCompact, active && styles.activeTab]}
+              numberOfLines={1}
+            >
+              {label}
+            </Text>
           </TouchableOpacity>
         );
       })}

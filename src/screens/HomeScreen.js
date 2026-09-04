@@ -100,6 +100,7 @@ export function HomeScreen({
 }) {
   const { showLoading, hideLoading, success, error, info } = useFeedback();
   const [plans, setPlans] = useState([]);
+  const [plansError, setPlansError] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
@@ -145,7 +146,7 @@ export function HomeScreen({
         await Promise.all([
           planApi.list({ pageNumber: 1, pageSize: 50 }).catch(err => {
             console.warn("Failed to load plans:", err.message);
-            return null;
+            return { __error: err.message || "Unable to load plans." };
           }),
           vehicleApi
             .list({
@@ -168,13 +169,16 @@ export function HomeScreen({
         ]);
 
       function asRecords(payload) {
-        if (!payload) return null;
+        if (!payload || payload.__error) return null;
         const data = payload.data;
         const rows = data?.records ?? data?.items ?? data;
         return Array.isArray(rows) ? rows : [];
       }
 
-      if (plansResponse) {
+      if (plansResponse?.__error) {
+        setPlansError(plansResponse.__error);
+      } else if (plansResponse) {
+        setPlansError(null);
         setPlans(asRecords(plansResponse) || []);
       }
       if (vehiclesResponse) {
@@ -417,7 +421,22 @@ export function HomeScreen({
         </TouchableOpacity>
       </View>
 
-      {loading ? null : plans.length === 0 ? (
+      {loading ? null : plansError ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>Couldn’t load plans</Text>
+          <Text style={styles.emptySub}>{plansError}</Text>
+          <TouchableOpacity
+            style={[styles.emptyCta, { marginTop: 10 }]}
+            onPress={() => {
+              setLoading(true);
+              loadDashboard();
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.emptyCtaText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : plans.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>No plans on this account yet</Text>
           <Text style={styles.emptySub}>

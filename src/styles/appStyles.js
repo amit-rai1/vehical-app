@@ -1222,6 +1222,49 @@ export const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 14
   },
+  skipCta: {
+    marginTop: 14,
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16
+  },
+  skipCtaText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 15
+  },
+  skipFormBox: {
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    gap: 8
+  },
+  skipStatusBadge: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.primaryWash
+  },
+  skipStatusPending: {
+    backgroundColor: colors.primaryWash
+  },
+  skipStatusApproved: {
+    backgroundColor: "#ecfdf5"
+  },
+  skipStatusRejected: {
+    backgroundColor: "#fff1f2"
+  },
+  skipStatusText: {
+    color: colors.primaryDark,
+    fontSize: 12,
+    fontWeight: "800"
+  },
   feedbackBox: {
     marginTop: 14,
     paddingTop: 8

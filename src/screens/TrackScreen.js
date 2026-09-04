@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Linking,
   RefreshControl,
@@ -22,6 +22,15 @@ const STATUS_STEPS = [
   { key: "Completed", match: [4, "Completed"] }
 ];
 
+const SKIP_STATUS = {
+  1: "Pending",
+  2: "Approved",
+  3: "Rejected",
+  Pending: "Pending",
+  Approved: "Approved",
+  Rejected: "Rejected"
+};
+
 function statusIndex(status, partnerId) {
   const value = status;
   if (value === 4 || value === "Completed") return 3;
@@ -33,6 +42,14 @@ function statusIndex(status, partnerId) {
 
 function isCompleted(status) {
   return status === 4 || status === "Completed";
+}
+
+function isCancelled(status) {
+  return status === 5 || status === "Cancelled";
+}
+
+function isActiveBooking(status) {
+  return !isCompleted(status) && !isCancelled(status);
 }
 
 function formatWhen(value) {
@@ -47,6 +64,28 @@ function formatWhen(value) {
   } catch {
     return String(value);
   }
+}
+
+function asRecords(payload) {
+  const data = payload?.data;
+  const rows = data?.records ?? data?.items ?? data;
+  return Array.isArray(rows) ? rows : [];
+}
+
+function canRequestSkip(booking) {
+  if (!booking?.scheduledAt) return false;
+  if (!isActiveBooking(booking.status)) return false;
+  const when = new Date(booking.scheduledAt).getTime();
+  if (Number.isNaN(when)) return false;
+  return when - Date.now() >= 24 * 60 * 60 * 1000;
+}
+
+function withinSkipWindowBlocked(booking) {
+  if (!booking?.scheduledAt) return false;
+  if (!isActiveBooking(booking.status)) return false;
+  const when = new Date(booking.scheduledAt).getTime();
+  if (Number.isNaN(when)) return false;
+  return when - Date.now() < 24 * 60 * 60 * 1000;
 }
 
 function StarPicker({ rating, onChange }) {
@@ -71,36 +110,69 @@ function StarPicker({ rating, onChange }) {
   );
 }
 
-function canRequestSkip(booking) {
-  if (!booking?.scheduledAt) return false;
-  const status = booking.status;
-  if (status === 4 || status === "Completed" || status === 5 || status === "Cancelled") {
-    return false;
-  }
-  const when = new Date(booking.scheduledAt).getTime();
-  return when - Date.now() >= 24 * 60 * 60 * 1000;
+function skipStatusLabel(status) {
+  return SKIP_STATUS[status] || String(status || "");
 }
 
 export function TrackScreen({ refreshKey }) {
-  const { showLoading, hideLoading, success, error, info, confirm } = useFeedback();
+  const { showLoading, hideLoading, success, error, info } = useFeedback();
   const [bookings, setBookings] = useState([]);
+  const [skipByBookingId, setSkipByBookingId] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [ratingBookingId, setRatingBookingId] = useState(null);
   const [rating, setRating] = useState(5);
   const [comments, setComments] = useState("");
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [skipFormBookingId, setSkipFormBookingId] = useState(null);
+  const [skipReason, setSkipReason] = useState("");
+  const [submittingSkip, setSubmittingSkip] = useState(false);
 
-  const loadBookings = useCallback(async () => {
+  const loadTrackData = useCallback(async () => {
     showLoading("Loading bookings…");
     try {
-      const response = await bookingApi.list({ pageNumber: 1, pageSize: 20 });
-      const records =
-        response?.data?.records || response?.data?.items || response?.data || [];
-      setBookings(Array.isArray(records) ? records : []);
-    } catch (err) {
-      console.warn("Failed to load bookings:", err.message);
-      setBookings([]);
+      const [bookingsRes, skipsRes] = await Promise.all([
+        bookingApi.list({ pageNumber: 1, pageSize: 50 }).catch(err => {
+          console.warn("Failed to load bookings:", err.message);
+          return null;
+        }),
+        skipRequestApi.list(1, 50).catch(err => {
+          console.warn("Failed to load skip requests:", err.message);
+          return null;
+        })
+      ]);
+
+      if (bookingsRes) {
+        setBookings(asRecords(bookingsRes));
+      } else {
+        setBookings([]);
+      }
+
+      if (skipsRes) {
+        const skips = asRecords(skipsRes);
+        const map = {};
+        for (const skip of skips) {
+          const bookingId = skip.serviceBookingId ?? skip.bookingId;
+          if (bookingId == null) continue;
+          const existing = map[bookingId];
+          // Prefer Pending, else newest by requestedOn
+          if (!existing) {
+            map[bookingId] = skip;
+            continue;
+          }
+          const existingPending =
+            existing.status === 1 || existing.status === "Pending";
+          const nextPending = skip.status === 1 || skip.status === "Pending";
+          if (nextPending && !existingPending) {
+            map[bookingId] = skip;
+            continue;
+          }
+          const existingOn = new Date(existing.requestedOn || 0).getTime();
+          const nextOn = new Date(skip.requestedOn || 0).getTime();
+          if (nextOn >= existingOn) map[bookingId] = skip;
+        }
+        setSkipByBookingId(map);
+      }
     } finally {
       hideLoading();
       setLoading(false);
@@ -110,8 +182,8 @@ export function TrackScreen({ refreshKey }) {
 
   useEffect(() => {
     setLoading(true);
-    loadBookings();
-  }, [loadBookings, refreshKey]);
+    loadTrackData();
+  }, [loadTrackData, refreshKey]);
 
   async function callPartner(mobile) {
     if (!mobile) {
@@ -132,27 +204,37 @@ export function TrackScreen({ refreshKey }) {
     setComments("");
   }
 
-  async function submitSkipRequest(bookingId) {
-    const ok = await confirm({
-      title: "Can't make it?",
-      message:
-        "Tell us at least 24 hours before. If admin approves, this booking is cancelled and your plan end date extends by 1 day.",
-      confirmText: "Submit request"
-    });
-    if (!ok) return;
+  function openSkipForm(bookingId) {
+    setSkipFormBookingId(bookingId);
+    setSkipReason("");
+    setRatingBookingId(null);
+  }
 
-    showLoading("Submitting request…");
+  function closeSkipForm() {
+    setSkipFormBookingId(null);
+    setSkipReason("");
+  }
+
+  async function submitSkipRequest(bookingId) {
+    const reason = skipReason.trim().slice(0, 500);
+    setSubmittingSkip(true);
+    showLoading("Submitting skip request…");
     try {
       await skipRequestApi.create({
         serviceBookingId: bookingId,
-        reason: "Unable to take service"
+        reason: reason || "Unable to take service"
       });
-      await success("Request sent", "Waiting for admin approval.");
-      await loadBookings();
+      await success(
+        "Skip request sent",
+        "Waiting for admin approval. If approved, this booking is cancelled and your plan end date extends by 1 day."
+      );
+      closeSkipForm();
+      await loadTrackData();
     } catch (err) {
       await error("Request failed", err.message || "Please try again.");
     } finally {
       hideLoading();
+      setSubmittingSkip(false);
     }
   }
 
@@ -172,7 +254,7 @@ export function TrackScreen({ refreshKey }) {
       await success("Thank you", "Your feedback was submitted.");
       setRatingBookingId(null);
       setComments("");
-      await loadBookings();
+      await loadTrackData();
     } catch (err) {
       await error("Feedback failed", err.message || "Please try again.");
     } finally {
@@ -180,6 +262,11 @@ export function TrackScreen({ refreshKey }) {
       setSubmittingFeedback(false);
     }
   }
+
+  const subtitle = useMemo(
+    () => "Track status, call partner, or request to skip (24h+ before).",
+    []
+  );
 
   if (loading) {
     return <View style={styles.flex} />;
@@ -194,13 +281,13 @@ export function TrackScreen({ refreshKey }) {
           refreshing={refreshing}
           onRefresh={() => {
             setRefreshing(true);
-            loadBookings();
+            loadTrackData();
           }}
           tintColor={colors.primary}
         />
       }
     >
-      <Header title="Track Service" subtitle="Live status, partner details, and ratings." />
+      <Header title="Track Service" subtitle={subtitle} />
 
       {bookings.length === 0 ? (
         <View style={styles.emptyCard}>
@@ -211,21 +298,44 @@ export function TrackScreen({ refreshKey }) {
         </View>
       ) : (
         bookings.map(booking => {
+          const bookingId = booking.bookingId;
           const activeIndex = statusIndex(booking.status, booking.partnerId);
-          const cancelled = booking.status === 5 || booking.status === "Cancelled";
+          const cancelled = isCancelled(booking.status);
           const completed = isCompleted(booking.status);
           const showRate = completed && !booking.hasFeedback;
-          const isRatingThis = ratingBookingId === booking.bookingId;
+          const isRatingThis = ratingBookingId === bookingId;
+          const isSkipForm = skipFormBookingId === bookingId;
+          const skip = skipByBookingId[bookingId];
+          const skipLabel = skip ? skipStatusLabel(skip.status) : null;
+          const skipPending = skipLabel === "Pending";
+          const eligibleSkip = canRequestSkip(booking) && !skipPending;
+          const blockedBy24h = withinSkipWindowBlocked(booking) && !skipPending;
 
           return (
-            <View key={booking.bookingId} style={styles.panel}>
+            <View key={bookingId} style={styles.panel}>
               <Text style={styles.panelTitle}>{booking.planName || "Service booking"}</Text>
               <Text style={styles.listSub}>
-                #{booking.bookingId} · {booking.vehicleName || "Vehicle"}
+                #{bookingId} · {booking.vehicleName || "Vehicle"}
               </Text>
               <Text style={styles.listSub}>
                 {formatWhen(booking.scheduledAt)} · {booking.addressSummary || "Address"}
               </Text>
+
+              {skipLabel ? (
+                <View
+                  style={[
+                    styles.skipStatusBadge,
+                    skipPending && styles.skipStatusPending,
+                    skipLabel === "Approved" && styles.skipStatusApproved,
+                    skipLabel === "Rejected" && styles.skipStatusRejected
+                  ]}
+                >
+                  <Text style={styles.skipStatusText}>
+                    Skip request: {skipLabel}
+                    {skip.adminNotes ? ` · ${skip.adminNotes}` : ""}
+                  </Text>
+                </View>
+              ) : null}
 
               <View style={styles.partnerInfoCard}>
                 {booking.partnerName || booking.partnerId ? (
@@ -287,14 +397,64 @@ export function TrackScreen({ refreshKey }) {
                 </View>
               )}
 
-              {canRequestSkip(booking) ? (
+              {skipPending ? (
+                <Text style={[styles.listSub, { marginTop: 12, color: colors.primaryDark }]}>
+                  Skip request pending — waiting for admin approval.
+                </Text>
+              ) : null}
+
+              {blockedBy24h ? (
+                <Text style={[styles.listSub, { marginTop: 12 }]}>
+                  Skip requests must be raised at least 24 hours before the scheduled time.
+                </Text>
+              ) : null}
+
+              {eligibleSkip && !isSkipForm ? (
                 <TouchableOpacity
-                  style={styles.secondaryCta}
-                  onPress={() => submitSkipRequest(booking.bookingId)}
+                  style={styles.skipCta}
+                  onPress={() => openSkipForm(bookingId)}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.secondaryCtaText}>Can't make it (before 24h)</Text>
+                  <Text style={styles.skipCtaText}>Request to skip this service</Text>
                 </TouchableOpacity>
+              ) : null}
+
+              {isSkipForm ? (
+                <View style={styles.skipFormBox}>
+                  <Text style={styles.panelTitle}>Skip this service</Text>
+                  <Text style={styles.listSub}>
+                    Submit at least 24 hours before. If admin approves, this booking is cancelled
+                    and your plan end date extends by 1 day.
+                  </Text>
+                  <Text style={styles.label}>Reason (optional)</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    value={skipReason}
+                    onChangeText={value => setSkipReason(value.slice(0, 500))}
+                    placeholder="Why do you need to skip?"
+                    placeholderTextColor="#9a9dad"
+                    multiline
+                    maxLength={500}
+                  />
+                  <View style={styles.row}>
+                    <View style={styles.flex}>
+                      <Button
+                        title="Cancel"
+                        variant="ghost"
+                        onPress={closeSkipForm}
+                        disabled={submittingSkip}
+                      />
+                    </View>
+                    <View style={styles.flex}>
+                      <Button
+                        title={submittingSkip ? "Sending..." : "Submit request"}
+                        onPress={() => submitSkipRequest(bookingId)}
+                        disabled={submittingSkip}
+                        loading={submittingSkip}
+                      />
+                    </View>
+                  </View>
+                </View>
               ) : null}
 
               {completed && booking.hasFeedback ? (
@@ -306,7 +466,7 @@ export function TrackScreen({ refreshKey }) {
               {showRate && !isRatingThis ? (
                 <TouchableOpacity
                   style={styles.primaryCta}
-                  onPress={() => openRateForm(booking.bookingId)}
+                  onPress={() => openRateForm(bookingId)}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.primaryCtaText}>Rate this service</Text>
@@ -338,7 +498,7 @@ export function TrackScreen({ refreshKey }) {
                     <View style={styles.flex}>
                       <Button
                         title={submittingFeedback ? "Sending..." : "Submit feedback"}
-                        onPress={() => submitFeedback(booking.bookingId)}
+                        onPress={() => submitFeedback(bookingId)}
                         disabled={submittingFeedback}
                         loading={submittingFeedback}
                       />

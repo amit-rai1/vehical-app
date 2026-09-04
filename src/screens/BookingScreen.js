@@ -127,7 +127,7 @@ export function BookingScreen({
       });
       await success(
         "Booking placed",
-        "Your service is booked. A partner will be assigned shortly."
+        "Your service is booked. A partner will be assigned shortly. Need to skip later? Open Track and request a skip at least 24 hours before the scheduled time."
       );
       onNavigate("track");
     } catch (err) {

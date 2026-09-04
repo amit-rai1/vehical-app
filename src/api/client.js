@@ -176,8 +176,10 @@ export const skipRequestApi = {
       method: "POST",
       body
     }),
-  list: (pageNumber = 1, pageSize = 20) =>
-    request(`/api/customer/skip-requests?pageNumber=${pageNumber}&pageSize=${pageSize}`)
+  list: (pageNumber = 1, pageSize = 50) =>
+    request(
+      `/api/customer/skip-requests?pageNumber=${pageNumber}&pageSize=${pageSize}`
+    )
 };
 
 export const partnerApi = {

@@ -29,6 +29,7 @@ export function BookingScreen({
 }) {
   const { showLoading, hideLoading, success, error, info, confirm } = useFeedback();
   const [plans, setPlans] = useState([]);
+  const [plansError, setPlansError] = useState(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [planDetail, setPlanDetail] = useState(null);
   const [bookingDate, setBookingDate] = useState(null);
@@ -42,6 +43,7 @@ export function BookingScreen({
 
   async function loadPlans() {
     setLoading(true);
+    setPlansError(null);
     showLoading("Loading plans…");
     try {
       const plansRes = await planApi.list({
@@ -60,7 +62,8 @@ export function BookingScreen({
         setSelectedPlanId(plansSafe[0].planId);
       }
     } catch (err) {
-      await error("Unable to load booking", err.message || "Please try again.");
+      setPlans([]);
+      setPlansError(err.message || "Unable to load plans.");
     } finally {
       hideLoading();
       setLoading(false);
@@ -148,9 +151,21 @@ export function BookingScreen({
 
       <View style={styles.panel}>
         <Text style={styles.stepLabel}>Step 1 · Active plan</Text>
-        {plans.length === 0 ? (
+        {plansError ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No active plan yet</Text>
+            <Text style={styles.emptyTitle}>Unable to load plans</Text>
+            <Text style={styles.emptySub}>{plansError}</Text>
+            <TouchableOpacity
+              style={styles.emptyCta}
+              onPress={loadPlans}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.emptyCtaText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : plans.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>No active plan found</Text>
             <Text style={styles.emptySub}>
               Buy a plan first. After it activates, you can book service dates here.
             </Text>

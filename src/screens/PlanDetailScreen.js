@@ -154,10 +154,10 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-      <Header title="Review & buy" subtitle={serviceName} />
+      <Header title="Review & Buy" subtitle={serviceName} />
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>1. Choose a plan</Text>
+        <Text style={styles.panelTitle}>1. Choose a Plan</Text>
         {plans.length === 0 ? (
           <Text style={styles.emptySub}>No plans available for this service right now.</Text>
         ) : (
@@ -186,7 +186,7 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>2. Select vehicle ({typeLabel})</Text>
+        <Text style={styles.panelTitle}>2. Select Vehicle ({typeLabel})</Text>
         {matchingVehicles.length === 0 ? (
           <Text style={styles.emptySub}>Add a matching vehicle before purchasing.</Text>
         ) : (
@@ -209,7 +209,7 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>3. Select address</Text>
+        <Text style={styles.panelTitle}>3. Select Address</Text>
         {addresses.length === 0 ? (
           <Text style={styles.emptySub}>Add a service address before purchasing.</Text>
         ) : (
@@ -232,7 +232,7 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
       </View>
 
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>4. Preferred service time</Text>
+        <Text style={styles.panelTitle}>4. Preferred Service Time</Text>
         <Text style={styles.listSub}>Used for every booking on this plan.</Text>
         <Text style={[styles.listTitle, { marginTop: 10 }]}>{timeLabel}</Text>
 
@@ -288,7 +288,7 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
         </View>
         <View style={styles.flex}>
           <Button
-            title={creatingOrder ? "Starting..." : "Continue to pay"}
+            title={creatingOrder ? "Starting..." : "Continue to Pay"}
             onPress={handleBuyPlan}
             disabled={creatingOrder || !selectedPlan}
           />

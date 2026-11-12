@@ -11,8 +11,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@expo-google-fonts/poppins": "^0.4.1",
     "expo": "~57.0.1",
     "expo-file-system": "~57.0.1",
+    "expo-font": "~57.0.4",
     "expo-image-picker": "~57.0.7",
     "expo-location": "~57.0.6",
     "expo-splash-screen": "~57.0.8",

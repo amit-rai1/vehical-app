@@ -49,7 +49,7 @@ function parseWaitSeconds(message) {
   return match ? Number(match[1]) : null;
 }
 
-export function AuthScreen({ onSignedIn }) {
+export function AuthScreen({ onSignedIn, onBack }) {
   const { showLoading, hideLoading, success, error, info } = useFeedback();
   const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -418,7 +418,7 @@ export function AuthScreen({ onSignedIn }) {
   const canResend = resendCooldown <= 0 && recentSendCount < MAX_OTP_SENDS && !loading;
 
   return (
-    <View style={styles.flex}>
+    <View style={styles.authScreen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.flex}
@@ -427,18 +427,25 @@ export function AuthScreen({ onSignedIn }) {
           contentContainerStyle={styles.authContainer}
           keyboardShouldPersistTaps="handled"
         >
+          {onBack ? (
+            <TouchableOpacity
+              onPress={onBack}
+              style={{ alignSelf: "flex-start", marginBottom: 8, paddingVertical: 4 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.linkText}>‹ Back</Text>
+            </TouchableOpacity>
+          ) : null}
+
           <Image
             source={require("../../assets/logo.png")}
-            style={{
-              width: 112,
-              height: 96,
-              resizeMode: "contain",
-              alignSelf: "center",
-              marginBottom: 18,
-              backgroundColor: "#fff"
-            }}
+            style={styles.authLogo}
             accessibilityLabel="App logo"
           />
+          <Text style={styles.authHeading}>Log in or Sign up</Text>
+          <Text style={styles.authSubheading}>
+            Enter your mobile number to continue with MARKER.
+          </Text>
 
           <View style={[styles.rowWrap, styles.rolePicker]}>
             <Chip
@@ -454,7 +461,7 @@ export function AuthScreen({ onSignedIn }) {
           </View>
 
           {step === "mobile" ? (
-            <View style={styles.panel}>
+            <View style={styles.authPanel}>
               <Field
                 label="Mobile Number"
                 value={mobileNumber}
@@ -480,7 +487,7 @@ export function AuthScreen({ onSignedIn }) {
           ) : null}
 
           {step === "otp" ? (
-            <View style={styles.panel}>
+            <View style={styles.authPanel}>
               <Field
                 label="OTP"
                 value={otp}
@@ -537,9 +544,9 @@ export function AuthScreen({ onSignedIn }) {
           ) : null}
 
           {step === "register" ? (
-            <View style={styles.panel}>
+            <View style={styles.authPanel}>
               <Text style={styles.panelTitle}>
-                Complete {role === "partner" ? "partner" : "customer"} profile
+                Complete {role === "partner" ? "Partner" : "Customer"} Profile
               </Text>
               <Text style={styles.listSub}>Mobile: +91 {mobileNumber}</Text>
 

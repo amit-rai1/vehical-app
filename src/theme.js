@@ -18,6 +18,14 @@ export const colors = {
   primaryBorder: "#C5D9F2"
 };
 
+/** Poppins face names from @expo-google-fonts/poppins (use family, not fontWeight). */
+export const fonts = {
+  regular: "Poppins_400Regular",
+  medium: "Poppins_500Medium",
+  semibold: "Poppins_600SemiBold",
+  bold: "Poppins_700Bold"
+};
+
 export const gradients = {
   primary: ["#4A82D4", "#103675"],
   card: ["#ffffff", "#f8fafc"]

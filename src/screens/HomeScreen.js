@@ -8,13 +8,13 @@ import {
   RefreshControl,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
 import {
   addressApi,
   bannerApi,
+  catalogApi,
   locationApi,
   planApi,
   vehicleApi
@@ -82,20 +82,59 @@ function isPending(status) {
   return status === 1 || status === "PendingActivation";
 }
 
-function isActive(status) {
-  return status === 2 || status === "Active";
-}
-
 function addressLabel(a) {
   if (!a) return "Select address";
   const line = [a.addressLine1, a.city, a.pincode].filter(Boolean).join(", ");
   return line || a.fullAddress || "Saved address";
 }
 
+function addressTitle(a) {
+  if (!a) return "Add service address";
+  return a.addressLine1 || a.city || a.pincode || "Saved address";
+}
+
+function asRecords(payload) {
+  if (!payload || payload.__error) return null;
+  const data = payload.data;
+  const rows = data?.records ?? data?.items ?? data;
+  return Array.isArray(rows) ? rows : [];
+}
+
+function imageUri(value) {
+  if (!value) return null;
+  const raw = String(value);
+  if (raw.startsWith("data:") || raw.startsWith("http")) return raw;
+  return `data:image/jpeg;base64,${raw}`;
+}
+
+function mapCatalogCards(services, vehicleTypeHint) {
+  if (!Array.isArray(services)) return [];
+  return services.map(service => {
+    const plans = Array.isArray(service.plans) ? service.plans : [];
+    const prices = plans.map(p => Number(p.price ?? 0)).filter(n => !Number.isNaN(n));
+    const minPrice = prices.length ? Math.min(...prices) : null;
+    const typeHint =
+      vehicleTypeHint ||
+      service.vehicleType ||
+      (String(service.name || "").toLowerCase().includes("4") ? "FourWheeler" : "TwoWheeler");
+    return {
+      id: service.id,
+      title: service.name,
+      image: imageUri(service.image),
+      icon: typeHint === "FourWheeler" || typeHint === 2 || typeHint === "2" ? "🚗" : "🛵",
+      time: "Flexible",
+      price: minPrice != null ? `From ₹${minPrice}` : "See plans",
+      planCount: plans.length,
+      raw: service
+    };
+  });
+}
+
 export function HomeScreen({
   user,
   onNavigate,
   onOpenServices,
+  onOpenPlanDetail,
   refreshKey
 }) {
   const { showLoading, hideLoading, success, error, info } = useFeedback();
@@ -106,6 +145,7 @@ export function HomeScreen({
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [banners, setBanners] = useState([]);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [catalogCards, setCatalogCards] = useState([]);
   const [serviceable, setServiceable] = useState(true);
   const [checkingPin, setCheckingPin] = useState(false);
   const [expandedPlanId, setExpandedPlanId] = useState(null);
@@ -113,7 +153,6 @@ export function HomeScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [areaNote, setAreaNote] = useState("");
   const [submittingArea, setSubmittingArea] = useState(false);
   const bannerRef = useRef(null);
 
@@ -142,38 +181,39 @@ export function HomeScreen({
   const loadDashboard = useCallback(async () => {
     showLoading("Loading home…");
     try {
-      const [plansResponse, vehiclesResponse, addressesResponse, bannersResponse] =
-        await Promise.all([
-          planApi.list({ pageNumber: 1, pageSize: 50 }).catch(err => {
-            console.warn("Failed to load plans:", err.message);
-            return { __error: err.message || "Unable to load plans." };
-          }),
-          vehicleApi
-            .list({
-              pageNumber: 1,
-              pageSize: 20,
-              search: "",
-              isActive: true,
-              sortBy: "CreatedOn",
-              isAscending: false
-            })
-            .catch(err => {
-              console.warn("Failed to load vehicles:", err.message);
-              return null;
-            }),
-          addressApi.list({ pageNumber: 1, pageSize: 100 }).catch(err => {
-            console.warn("Failed to load addresses:", err.message);
+      const [
+        plansResponse,
+        vehiclesResponse,
+        addressesResponse,
+        bannersResponse,
+        catalog2w,
+        catalog4w
+      ] = await Promise.all([
+        planApi.list({ pageNumber: 1, pageSize: 50 }).catch(err => {
+          console.warn("Failed to load plans:", err.message);
+          return { __error: err.message || "Unable to load plans." };
+        }),
+        vehicleApi
+          .list({
+            pageNumber: 1,
+            pageSize: 20,
+            search: "",
+            isActive: true,
+            sortBy: "CreatedOn",
+            isAscending: false
+          })
+          .catch(err => {
+            console.warn("Failed to load vehicles:", err.message);
             return null;
           }),
-          bannerApi.list().catch(() => ({ data: [] }))
-        ]);
-
-      function asRecords(payload) {
-        if (!payload || payload.__error) return null;
-        const data = payload.data;
-        const rows = data?.records ?? data?.items ?? data;
-        return Array.isArray(rows) ? rows : [];
-      }
+        addressApi.list({ pageNumber: 1, pageSize: 100 }).catch(err => {
+          console.warn("Failed to load addresses:", err.message);
+          return null;
+        }),
+        bannerApi.list().catch(() => ({ data: [] })),
+        catalogApi.list("TwoWheeler").catch(() => ({ data: [] })),
+        catalogApi.list("FourWheeler").catch(() => ({ data: [] }))
+      ]);
 
       if (plansResponse?.__error) {
         setPlansError(plansResponse.__error);
@@ -193,6 +233,21 @@ export function HomeScreen({
 
       const bannerRecords = bannersResponse?.data || [];
       setBanners(Array.isArray(bannerRecords) ? bannerRecords : []);
+
+      const twoW = Array.isArray(catalog2w?.data) ? catalog2w.data : [];
+      const fourW = Array.isArray(catalog4w?.data) ? catalog4w.data : [];
+      const merged = [
+        ...mapCatalogCards(twoW, "TwoWheeler"),
+        ...mapCatalogCards(fourW, "FourWheeler")
+      ];
+      const deduped = [];
+      const seen = new Set();
+      for (const card of merged) {
+        if (seen.has(card.id)) continue;
+        seen.add(card.id);
+        deduped.push(card);
+      }
+      setCatalogCards(deduped);
 
       if (addrSafe) {
         const def = addrSafe.find(a => a.isDefault) || addrSafe[0] || null;
@@ -269,11 +324,10 @@ export function HomeScreen({
         mobile: user?.mobileNumber || selectedAddress.mobileNumber || "",
         pincode: selectedAddress.pincode,
         address: addressLabel(selectedAddress),
-        notes: areaNote || null,
+        notes: null,
         sourceModule: 1
       });
       await success("Request sent", "Thanks! We'll notify you when we expand to your area.");
-      setAreaNote("");
     } catch (err) {
       await error("Request", err.message || "Unable to submit request.");
     } finally {
@@ -292,6 +346,21 @@ export function HomeScreen({
     }
     if (target === "services") onOpenServices?.();
     else onNavigate?.(target);
+  }
+
+  async function openServiceCard(card) {
+    if (!serviceable) {
+      await info(
+        "Not available yet",
+        "We're not available in your area yet. Leave a request below and we'll get back to you."
+      );
+      return;
+    }
+    if (onOpenPlanDetail) {
+      onOpenPlanDetail(card);
+      return;
+    }
+    onOpenServices?.();
   }
 
   return (
@@ -317,13 +386,13 @@ export function HomeScreen({
         <Text style={styles.locationBarIcon}>📍</Text>
         <View style={styles.locationBarText}>
           <Text style={styles.locationBarTitle} numberOfLines={1}>
-            {selectedAddress ? addressLabel(selectedAddress) : "Add service address"}
+            {addressTitle(selectedAddress)}
           </Text>
-          <Text style={styles.locationBarSub}>
+          <Text style={styles.locationBarSub} numberOfLines={1}>
             {checkingPin
               ? "Checking serviceability…"
-              : selectedAddress?.pincode
-                ? `Pincode ${selectedAddress.pincode}`
+              : selectedAddress
+                ? addressLabel(selectedAddress)
                 : "Tap to choose address"}
           </Text>
         </View>
@@ -368,51 +437,76 @@ export function HomeScreen({
 
       {!serviceable && selectedAddress ? (
         <View style={styles.unserviceableCard}>
-          <Text style={styles.unserviceableTitle}>We're not available in your area yet</Text>
-          <Text style={styles.unserviceableSub}>
-            Leave your details and we'll reach out when we expand to {selectedAddress.pincode}.
+          <Text style={styles.unserviceableTitle}>
+            WE ARE COMING{" "}
+            <Text style={styles.unserviceableTitleAccent}>SOON</Text>
           </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Optional note"
-            placeholderTextColor={colors.muted}
-            value={areaNote}
-            onChangeText={setAreaNote}
-          />
+          <Text style={styles.unserviceableSub}>
+            We're currently live in select areas and expanding quickly. Get notified when we are
+            near {selectedAddress.pincode}.
+          </Text>
           <TouchableOpacity
-            style={[styles.emptyCta, { marginTop: 10 }]}
+            style={styles.comingSoonCta}
             onPress={submitAreaRequest}
             disabled={submittingArea}
             activeOpacity={0.85}
           >
-            <Text style={styles.emptyCtaText}>
+            <Text style={styles.comingSoonCtaText}>
               {submittingArea ? "Sending…" : "Notify me"}
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setPickerOpen(true)} activeOpacity={0.85}>
+            <Text style={styles.changeLocationLink}>Change location</Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
-      <View style={styles.quickGrid}>
-        <TouchableOpacity
-          style={[styles.quickAction, !serviceable && styles.quickActionDisabled]}
-          onPress={() => goBuyOrBook("booking")}
-        >
-          <Text style={styles.quickIcon}>📅</Text>
-          <Text style={styles.quickText}>Book</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickAction} onPress={() => onNavigate("vehicles")}>
-          <Text style={styles.quickIcon}>🚗</Text>
-          <Text style={styles.quickText}>Vehicles</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickAction} onPress={() => onNavigate("addresses")}>
-          <Text style={styles.quickIcon}>📍</Text>
-          <Text style={styles.quickText}>Addresses</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.quickAction} onPress={() => onNavigate("help")}>
-          <Text style={styles.quickIcon}>💬</Text>
-          <Text style={styles.quickText}>Help</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Services We Offer</Text>
+        <TouchableOpacity onPress={() => goBuyOrBook("services")}>
+          <Text style={[styles.linkText, !serviceable && { opacity: 0.45 }]}>See all</Text>
         </TouchableOpacity>
       </View>
+
+      {catalogCards.length === 0 ? (
+        <View style={[styles.emptyCard, { marginBottom: 18 }]}>
+          <Text style={styles.emptySub}>
+            {loading ? "Loading services…" : "No services available right now."}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.offerGrid}>
+          {catalogCards.map(card => (
+            <TouchableOpacity
+              key={card.id}
+              style={[styles.offerCard, !serviceable && styles.offerCardDisabled]}
+              onPress={() => openServiceCard(card)}
+              activeOpacity={0.88}
+            >
+              {card.image ? (
+                <Image
+                  source={{ uri: card.image }}
+                  style={styles.offerImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.offerImagePlaceholder}>
+                  <Text style={styles.offerImagePlaceholderText}>{card.icon}</Text>
+                </View>
+              )}
+              <View style={styles.offerCardBody}>
+                <Text style={styles.offerCardTitle} numberOfLines={2}>
+                  {card.title}
+                </Text>
+                <Text style={styles.offerCardPrice}>{card.price}</Text>
+                <Text style={styles.offerCardMeta}>
+                  {card.planCount} plan{card.planCount === 1 ? "" : "s"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>My Plans</Text>
@@ -440,7 +534,8 @@ export function HomeScreen({
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>No plans on this account yet</Text>
           <Text style={styles.emptySub}>
-            Purchase a plan with vehicle, address, and preferred time. New plans activate after 2 days and will show here once purchased.
+            Purchase a plan with vehicle, address, and preferred time. New plans activate after 2
+            days and will show here once purchased.
           </Text>
           <TouchableOpacity
             style={[styles.emptyCta, !serviceable && { opacity: 0.5 }]}
@@ -509,7 +604,8 @@ export function HomeScreen({
                   {detail ? (
                     <>
                       <Text style={[styles.listSub, { marginBottom: 8 }]}>
-                        Completed: {detail.completedServicesCount ??
+                        Completed:{" "}
+                        {detail.completedServicesCount ??
                           (detail.completedServiceDates || []).length}{" "}
                         services · Scheduled: {(detail.scheduledServiceDates || []).length}
                       </Text>
@@ -545,7 +641,12 @@ export function HomeScreen({
         </View>
       ))}
 
-      <Modal visible={pickerOpen} animationType="slide" transparent onRequestClose={() => setPickerOpen(false)}>
+      <Modal
+        visible={pickerOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPickerOpen(false)}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
             <Text style={styles.sectionTitle}>Choose address</Text>
@@ -574,7 +675,10 @@ export function HomeScreen({
             >
               <Text style={styles.emptyCtaText}>Add new address</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={{ marginTop: 10, alignItems: "center" }} onPress={() => setPickerOpen(false)}>
+            <TouchableOpacity
+              style={{ marginTop: 10, alignItems: "center" }}
+              onPress={() => setPickerOpen(false)}
+            >
               <Text style={styles.linkText}>Close</Text>
             </TouchableOpacity>
           </View>

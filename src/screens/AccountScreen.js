@@ -56,7 +56,7 @@ function bookingStatusLabel(status) {
   const value = String(status ?? "");
   if (value === "1" || value === "Pending") return "Pending";
   if (value === "2" || value === "Confirmed") return "Confirmed";
-  if (value === "3" || value === "InProgress") return "In progress";
+  if (value === "3" || value === "InProgress") return "In Progress";
   if (value === "4" || value === "Completed") return "Completed";
   if (value === "5" || value === "Cancelled") return "Cancelled";
   return value || "—";
@@ -88,11 +88,31 @@ function genderLabel(gender) {
   return null;
 }
 
+function MenuRow({ icon, title, subtitle, onPress, last }) {
+  return (
+    <TouchableOpacity
+      style={[styles.accountMenuRow, last && styles.accountMenuRowLast]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      disabled={!onPress}
+    >
+      <View style={styles.accountMenuIcon}>
+        <Text style={styles.accountMenuIconText}>{icon}</Text>
+      </View>
+      <View style={styles.accountMenuTextWrap}>
+        <Text style={styles.accountMenuTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.accountMenuSub}>{subtitle}</Text> : null}
+      </View>
+      {onPress ? <Text style={styles.accountMenuChevron}>›</Text> : null}
+    </TouchableOpacity>
+  );
+}
+
 function Section({ title, children, actionLabel, onAction }) {
   return (
     <View style={{ marginBottom: 18 }}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{title}</Text>
         {actionLabel && onAction ? (
           <TouchableOpacity onPress={onAction}>
             <Text style={styles.linkText}>{actionLabel}</Text>
@@ -226,6 +246,10 @@ export function AccountScreen({
     })
     .slice(0, 8);
 
+  const activePlans = plans.filter(
+    p => p.status === 2 || p.status === "Active" || p.status === 1 || p.status === "PendingActivation"
+  ).length;
+
   return (
     <ScrollView
       style={styles.flex}
@@ -241,49 +265,40 @@ export function AccountScreen({
         />
       }
     >
-      <Header title="My Account" subtitle={partner ? "Partner profile & jobs" : "Profile & history"} />
+      <Header
+        title="My Account"
+        subtitle={partner ? "Partner Profile & Jobs" : "Profile & History"}
+      />
 
       {loading ? null : (
         <>
-          <View style={styles.planCard}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={styles.accountHero}>
+            <View style={styles.accountHeroRow}>
               {profile?.profileImage ? (
-                <Image
-                  source={{ uri: profile.profileImage }}
-                  style={{ width: 56, height: 56, borderRadius: 28 }}
-                />
+                <Image source={{ uri: profile.profileImage }} style={styles.accountAvatar} />
               ) : (
-                <View
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    backgroundColor: colors.primaryWash,
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}
-                >
-                  <Text style={{ color: colors.primary, fontWeight: "900", fontSize: 18 }}>
+                <View style={styles.accountAvatarFallback}>
+                  <Text style={styles.accountAvatarLetter}>
                     {String(displayName).charAt(0).toUpperCase()}
                   </Text>
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <Text style={styles.planCardTitle}>{displayName}</Text>
-                <Text style={styles.listSub}>+91 {mobile}</Text>
-                {email ? <Text style={styles.listSub}>{email}</Text> : null}
+                <Text style={styles.accountName}>{displayName}</Text>
+                <Text style={styles.accountMeta}>+91 {mobile}</Text>
+                {email ? <Text style={styles.accountMeta}>{email}</Text> : null}
                 {!partner && genderLabel(profile?.gender) ? (
-                  <Text style={styles.listSub}>{genderLabel(profile.gender)}</Text>
+                  <Text style={styles.accountMeta}>{genderLabel(profile.gender)}</Text>
                 ) : null}
                 {partner ? (
-                  <Text style={[styles.listSub, { marginTop: 4 }]}>
-                    Status: {partnerStatusLabel(profile?.partnerStatus ?? user?.partnerStatus)}
+                  <Text style={[styles.accountMeta, { marginTop: 6 }]}>
+                    Status · {partnerStatusLabel(profile?.partnerStatus ?? user?.partnerStatus)}
                   </Text>
                 ) : null}
               </View>
             </View>
             {partner && (profile?.address || profile?.city) ? (
-              <Text style={[styles.listSub, { marginTop: 12 }]}>
+              <Text style={[styles.accountMeta, { marginTop: 14 }]}>
                 {[profile.address, profile.city, profile.state, profile.pincode]
                   .filter(Boolean)
                   .join(", ")}
@@ -293,16 +308,59 @@ export function AccountScreen({
 
           {!partner ? (
             <>
-              <Section title="My plans" actionLabel="Book" onAction={() => onNavigate?.("booking")}>
+              <View style={styles.accountMenuCard}>
+                <MenuRow
+                  icon="▦"
+                  title="My Plans"
+                  subtitle={
+                    plans.length
+                      ? `${activePlans} active · ${plans.length} total`
+                      : "No plans yet"
+                  }
+                  onPress={() => onNavigate?.("booking")}
+                />
+                <MenuRow
+                  icon="◎"
+                  title="Booking History"
+                  subtitle={
+                    bookings.length
+                      ? `${bookings.length} booking${bookings.length === 1 ? "" : "s"}`
+                      : "No bookings yet"
+                  }
+                  onPress={() => onNavigate?.("track")}
+                />
+                <MenuRow
+                  icon="▤"
+                  title="Invoices"
+                  subtitle={
+                    invoices.length
+                      ? `${invoices.length} invoice${invoices.length === 1 ? "" : "s"}`
+                      : "No invoices yet"
+                  }
+                />
+                <MenuRow
+                  icon="★"
+                  title="My Feedback"
+                  subtitle={
+                    feedback.length
+                      ? `${feedback.length} review${feedback.length === 1 ? "" : "s"}`
+                      : "No feedback yet"
+                  }
+                  last
+                />
+              </View>
+
+              <Section title="My Plans" actionLabel="Book" onAction={() => onNavigate?.("booking")}>
                 {plans.length === 0 ? (
                   <EmptyLine text="No plans yet." />
                 ) : (
                   plans.slice(0, 5).map(plan => (
-                    <View key={plan.planId} style={styles.addressPreview}>
+                    <View key={plan.planId} style={styles.accountListCard}>
                       <Text style={styles.listTitle}>{plan.planName}</Text>
                       <Text style={styles.listSub}>
                         {planStatusLabel(plan.status)} ·{" "}
-                        {Math.max(0, (plan.totalServices || 0) - (plan.servicesUsed || 0))} services left
+                        {Math.max(0, (plan.totalServices || 0) - (plan.servicesUsed || 0))}{" "}
+                        services left
                       </Text>
                       <Text style={styles.listSub}>
                         {formatDate(plan.startDate)} → {formatDate(plan.endDate)}
@@ -313,7 +371,7 @@ export function AccountScreen({
               </Section>
 
               <Section
-                title="Booking history"
+                title="Booking History"
                 actionLabel="Track"
                 onAction={() => onNavigate?.("track")}
               >
@@ -321,7 +379,7 @@ export function AccountScreen({
                   <EmptyLine text="No bookings yet." />
                 ) : (
                   bookings.slice(0, 8).map(b => (
-                    <View key={b.bookingId} style={styles.addressPreview}>
+                    <View key={b.bookingId} style={styles.accountListCard}>
                       <Text style={styles.listTitle}>
                         #{b.bookingId} · {b.planName || "Service"}
                       </Text>
@@ -345,13 +403,15 @@ export function AccountScreen({
                   invoices.slice(0, 8).map(inv => (
                     <TouchableOpacity
                       key={inv.invoiceId}
-                      style={styles.addressPreview}
+                      style={styles.accountListCard}
                       activeOpacity={inv.pdfUrl ? 0.85 : 1}
                       onPress={() => {
                         if (inv.pdfUrl) Linking.openURL(inv.pdfUrl).catch(() => {});
                       }}
                     >
-                      <Text style={styles.listTitle}>{inv.invoiceNumber || `#${inv.invoiceId}`}</Text>
+                      <Text style={styles.listTitle}>
+                        {inv.invoiceNumber || `#${inv.invoiceId}`}
+                      </Text>
                       <Text style={styles.listSub}>
                         {formatDate(inv.invoiceDate)} · {inv.currency || "INR"} {inv.amount}
                         {inv.pdfUrl ? " · Open PDF" : ""}
@@ -361,12 +421,12 @@ export function AccountScreen({
                 )}
               </Section>
 
-              <Section title="My feedback">
+              <Section title="My Feedback">
                 {feedback.length === 0 ? (
                   <EmptyLine text="No feedback submitted yet." />
                 ) : (
                   feedback.slice(0, 8).map((f, idx) => (
-                    <View key={`${f.bookingId}-${idx}`} style={styles.addressPreview}>
+                    <View key={`${f.bookingId}-${idx}`} style={styles.accountListCard}>
                       <Text style={styles.listTitle}>
                         Booking #{f.bookingId} · {f.rating}/5
                       </Text>
@@ -379,35 +439,35 @@ export function AccountScreen({
             </>
           ) : (
             <>
-              <Section title="Job stats">
-                <View style={styles.quickGrid}>
-                  <View style={styles.quickAction}>
-                    <Text style={styles.listTitle}>{assigned}</Text>
-                    <Text style={styles.quickText}>Assigned</Text>
+              <Section title="Job Stats">
+                <View style={styles.accountStatGrid}>
+                  <View style={styles.accountStatCell}>
+                    <Text style={styles.accountStatValue}>{assigned}</Text>
+                    <Text style={styles.accountStatLabel}>Assigned</Text>
                   </View>
-                  <View style={styles.quickAction}>
-                    <Text style={styles.listTitle}>{inProgress}</Text>
-                    <Text style={styles.quickText}>In progress</Text>
+                  <View style={styles.accountStatCell}>
+                    <Text style={styles.accountStatValue}>{inProgress}</Text>
+                    <Text style={styles.accountStatLabel}>In Progress</Text>
                   </View>
-                  <View style={styles.quickAction}>
-                    <Text style={styles.listTitle}>{completed}</Text>
-                    <Text style={styles.quickText}>Completed</Text>
+                  <View style={styles.accountStatCell}>
+                    <Text style={styles.accountStatValue}>{completed}</Text>
+                    <Text style={styles.accountStatLabel}>Completed</Text>
                   </View>
-                  <View style={styles.quickAction}>
-                    <Text style={styles.listTitle}>{cancelled}</Text>
-                    <Text style={styles.quickText}>Cancelled</Text>
+                  <View style={styles.accountStatCell}>
+                    <Text style={styles.accountStatValue}>{cancelled}</Text>
+                    <Text style={styles.accountStatLabel}>Cancelled</Text>
                   </View>
                 </View>
               </Section>
 
-              <Section title="Recent jobs" actionLabel="Jobs" onAction={() => onNavigate?.("jobs")}>
+              <Section title="Recent Jobs" actionLabel="Jobs" onAction={() => onNavigate?.("jobs")}>
                 {recentCompleted.length === 0 ? (
                   <EmptyLine text="No completed or cancelled jobs yet." />
                 ) : (
                   recentCompleted.map(job => (
                     <TouchableOpacity
                       key={job.bookingId}
-                      style={styles.addressPreview}
+                      style={styles.accountListCard}
                       onPress={() => onOpenJob?.(job.bookingId)}
                       activeOpacity={0.85}
                     >
@@ -425,11 +485,11 @@ export function AccountScreen({
           )}
 
           <TouchableOpacity
-            style={[styles.emptyCta, { backgroundColor: colors.danger, marginTop: 8 }]}
+            style={styles.accountLogoutBtn}
             onPress={confirmLogout}
             activeOpacity={0.85}
           >
-            <Text style={styles.emptyCtaText}>Logout</Text>
+            <Text style={styles.accountLogoutText}>Logout</Text>
           </TouchableOpacity>
         </>
       )}

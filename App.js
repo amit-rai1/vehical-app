@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { BackHandler, StatusBar, View } from "react-native";
+import { BackHandler, StatusBar, Text, TextInput, View } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold
+} from "@expo-google-fonts/poppins";
 import { clearAuthToken } from "./src/api/client";
 import { BottomTabs } from "./src/components/BottomTabs";
 import { AuthScreen } from "./src/screens/AuthScreen";
@@ -17,11 +24,22 @@ import { PaymentScreen } from "./src/screens/PaymentScreen";
 import { ServicesScreen } from "./src/screens/ServicesScreen";
 import { TrackScreen } from "./src/screens/TrackScreen";
 import { VehiclesScreen } from "./src/screens/VehiclesScreen";
+import { WelcomeScreen } from "./src/screens/WelcomeScreen";
 import { styles } from "./src/styles/appStyles";
-import { colors } from "./src/theme";
+import { colors, fonts } from "./src/theme";
 import { FeedbackProvider } from "./src/feedback";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+function applyDefaultFonts() {
+  Text.defaultProps = Text.defaultProps || {};
+  Text.defaultProps.style = [{ fontFamily: fonts.regular }, Text.defaultProps.style];
+  TextInput.defaultProps = TextInput.defaultProps || {};
+  TextInput.defaultProps.style = [
+    { fontFamily: fonts.regular },
+    TextInput.defaultProps.style
+  ];
+}
 
 const CUSTOMER_TAB_KEYS = [
   "home",
@@ -48,10 +66,12 @@ function AppShell() {
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [pendingBookingPlanId, setPendingBookingPlanId] = useState(null);
+  const [authGate, setAuthGate] = useState("welcome");
 
   function handleLogout() {
     clearAuthToken();
     setUser(null);
+    setAuthGate("welcome");
     setTab("home");
     setPartnerTab("jobs");
     setScreen("root");
@@ -72,6 +92,10 @@ function AppShell() {
   useEffect(() => {
     const onHardwareBack = () => {
       if (!user) {
+        if (authGate === "auth") {
+          setAuthGate("welcome");
+          return true;
+        }
         return false;
       }
 
@@ -115,14 +139,19 @@ function AppShell() {
 
     const sub = BackHandler.addEventListener("hardwareBackPress", onHardwareBack);
     return () => sub.remove();
-  }, [user, screen, tab, partnerTab]);
+  }, [user, screen, tab, partnerTab, authGate]);
 
   const content = useMemo(() => {
     if (!user) {
+      if (authGate === "welcome") {
+        return <WelcomeScreen onContinue={() => setAuthGate("auth")} />;
+      }
       return (
         <AuthScreen
+          onBack={() => setAuthGate("welcome")}
           onSignedIn={nextUser => {
             setUser(nextUser);
+            setAuthGate("welcome");
             setTab("home");
             setScreen("root");
             bumpRefresh();
@@ -286,9 +315,14 @@ function AppShell() {
           setTab("services");
           setScreen("root");
         }}
+        onOpenPlanDetail={service => {
+          setSelectedService(service);
+          setScreen("planDetail");
+        }}
       />
     );
   }, [
+    authGate,
     partnerTab,
     paymentInfo,
     pendingBookingPlanId,
@@ -304,12 +338,29 @@ function AppShell() {
   const showPartnerTabs =
     Boolean(user) && isPartner(user) && screen === "root";
   const showTabs = showCustomerTabs || showPartnerTabs;
+  const isWelcome = !user && authGate === "welcome";
+  const isAuth = !user && authGate === "auth";
   const bottomPad = showTabs ? Math.max(insets.bottom, 12) + 88 : Math.max(insets.bottom, 8);
+  const shellBg = isWelcome ? colors.primaryDark : isAuth ? "#ffffff" : colors.wash;
+  const statusBarStyle = isWelcome ? "light-content" : "dark-content";
 
   return (
-    <View style={[styles.safe, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.wash} />
-      <View style={[styles.appShell, { paddingBottom: showTabs ? 0 : bottomPad }]}>
+    <View
+      style={[
+        styles.safe,
+        { backgroundColor: shellBg, paddingTop: isWelcome ? 0 : insets.top }
+      ]}
+    >
+      <StatusBar barStyle={statusBarStyle} backgroundColor={shellBg} />
+      <View
+        style={[
+          styles.appShell,
+          {
+            paddingBottom: isWelcome ? 0 : showTabs ? 0 : bottomPad,
+            backgroundColor: shellBg
+          }
+        ]}
+      >
         {content}
       </View>
       {showCustomerTabs ? (
@@ -342,11 +393,21 @@ function AppShell() {
 }
 
 export default function App() {
-  const [appReady, setAppReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold
+  });
+  const [defaultsApplied, setDefaultsApplied] = useState(false);
 
   useEffect(() => {
-    setAppReady(true);
-  }, []);
+    if (!fontsLoaded || defaultsApplied) return;
+    applyDefaultFonts();
+    setDefaultsApplied(true);
+  }, [fontsLoaded, defaultsApplied]);
+
+  const appReady = fontsLoaded && defaultsApplied;
 
   const onLayoutRootView = useCallback(async () => {
     if (!appReady) return;

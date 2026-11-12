@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors, shadow, softShadow } from "../theme";
+import { colors, fonts, shadow, softShadow } from "../theme";
 
 export const styles = StyleSheet.create({
   safe: {
@@ -15,7 +15,280 @@ export const styles = StyleSheet.create({
   authContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 22
+    padding: 22,
+    backgroundColor: "#ffffff"
+  },
+  authScreen: {
+    flex: 1,
+    backgroundColor: "#ffffff"
+  },
+  authLogo: {
+    width: 132,
+    height: 112,
+    resizeMode: "contain",
+    alignSelf: "center",
+    marginBottom: 12
+  },
+  authHeading: {
+    color: colors.ink,
+    fontSize: 26,
+    fontFamily: fonts.bold,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 6,
+    letterSpacing: -0.4
+  },
+  authSubheading: {
+    color: colors.muted,
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    textAlign: "center",
+    marginBottom: 22,
+    lineHeight: 20
+  },
+  authPanel: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14
+  },
+  welcomeRoot: {
+    flex: 1,
+    backgroundColor: colors.primaryDark
+  },
+  welcomeHero: {
+    flex: 1
+  },
+  welcomeHeroFallback: {
+    backgroundColor: colors.primaryDark
+  },
+  welcomeOrbTop: {
+    position: "absolute",
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: colors.primary,
+    opacity: 0.35,
+    top: -60,
+    right: -80
+  },
+  welcomeOrbBottom: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: colors.primaryLight,
+    opacity: 0.2,
+    bottom: 80,
+    left: -70
+  },
+  welcomeOverlay: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingHorizontal: 24
+  },
+  welcomeBrandBlock: {
+    alignItems: "center",
+    marginTop: 12
+  },
+  welcomeLogo: {
+    width: 120,
+    height: 100
+  },
+  welcomeBrandName: {
+    marginTop: 8,
+    color: "#ffffff",
+    fontSize: 28,
+    fontFamily: fonts.bold,
+    fontWeight: "800",
+    letterSpacing: 2
+  },
+  welcomeCopyBlock: {
+    marginBottom: 12
+  },
+  welcomeHeadline: {
+    color: "#ffffff",
+    fontSize: 34,
+    fontFamily: fonts.bold,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+    lineHeight: 40,
+    marginBottom: 12
+  },
+  welcomeSub: {
+    color: "rgba(255,255,255,0.88)",
+    fontSize: 15,
+    fontFamily: fonts.regular,
+    lineHeight: 22
+  },
+  welcomeCta: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    minHeight: 54,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow
+  },
+  welcomeCtaText: {
+    color: colors.primaryDark,
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
+  },
+  accountHero: {
+    backgroundColor: colors.paper,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 18,
+    marginBottom: 18,
+    ...softShadow
+  },
+  accountHeroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14
+  },
+  accountAvatar: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.primaryWash
+  },
+  accountAvatarFallback: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.primaryWash,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  accountAvatarLetter: {
+    color: colors.primaryDark,
+    fontSize: 24,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
+  },
+  accountName: {
+    color: colors.ink,
+    fontSize: 20,
+    fontFamily: fonts.bold,
+    fontWeight: "800",
+    letterSpacing: -0.3
+  },
+  accountMeta: {
+    color: colors.muted,
+    fontSize: 13,
+    fontFamily: fonts.medium,
+    marginTop: 3
+  },
+  accountMenuCard: {
+    backgroundColor: colors.paper,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: "hidden",
+    marginBottom: 18,
+    ...softShadow
+  },
+  accountMenuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    gap: 12
+  },
+  accountMenuRowLast: {
+    borderBottomWidth: 0
+  },
+  accountMenuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primaryWash,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  accountMenuIconText: {
+    fontSize: 16
+  },
+  accountMenuTextWrap: {
+    flex: 1
+  },
+  accountMenuTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontFamily: fonts.semibold,
+    fontWeight: "700"
+  },
+  accountMenuSub: {
+    color: colors.muted,
+    fontSize: 12,
+    fontFamily: fonts.regular,
+    marginTop: 2
+  },
+  accountMenuChevron: {
+    color: colors.muted,
+    fontSize: 22,
+    fontFamily: fonts.regular
+  },
+  accountLogoutBtn: {
+    marginTop: 4,
+    marginBottom: 8,
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.danger,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  accountLogoutText: {
+    color: colors.danger,
+    fontSize: 15,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
+  },
+  accountStatGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 8
+  },
+  accountStatCell: {
+    width: "47%",
+    backgroundColor: colors.paper,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    ...softShadow
+  },
+  accountStatValue: {
+    color: colors.ink,
+    fontSize: 22,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
+  },
+  accountStatLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    marginTop: 4
+  },
+  accountListCard: {
+    backgroundColor: colors.paper,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    marginBottom: 10,
+    ...softShadow
   },
   logoMark: {
     width: 72,
@@ -31,11 +304,13 @@ export const styles = StyleSheet.create({
   logoIcon: {
     color: "#fff",
     fontSize: 28,
+    fontFamily: fonts.bold,
     fontWeight: "900"
   },
   authTitle: {
     color: colors.ink,
     fontSize: 28,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 8
@@ -84,11 +359,13 @@ export const styles = StyleSheet.create({
   otpLinkLeft: {
     color: colors.primary,
     fontSize: 14,
+    fontFamily: fonts.semibold,
     fontWeight: "700"
   },
   otpLinkRight: {
     color: colors.danger,
     fontSize: 14,
+    fontFamily: fonts.semibold,
     fontWeight: "700"
   },
   otpLinkDisabled: {
@@ -97,6 +374,7 @@ export const styles = StyleSheet.create({
   greeting: {
     color: colors.primary,
     fontSize: 12,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 0.5
@@ -104,6 +382,7 @@ export const styles = StyleSheet.create({
   screenTitle: {
     color: colors.ink,
     fontSize: 26,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     marginTop: 4,
     letterSpacing: -0.5,
@@ -126,6 +405,7 @@ export const styles = StyleSheet.create({
   },
   avatarText: {
     color: colors.primary,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     fontSize: 16
   },
@@ -141,6 +421,7 @@ export const styles = StyleSheet.create({
   panelTitle: {
     color: colors.ink,
     fontSize: 18,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     marginBottom: 14,
     marginTop: 4,
@@ -153,6 +434,7 @@ export const styles = StyleSheet.create({
   label: {
     color: colors.ink,
     fontSize: 13,
+    fontFamily: fonts.semibold,
     fontWeight: "700",
     marginBottom: 8
   },
@@ -195,6 +477,7 @@ export const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 16,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     letterSpacing: 0.2
   },
@@ -238,6 +521,7 @@ export const styles = StyleSheet.create({
   },
   chipText: {
     color: colors.muted,
+    fontFamily: fonts.semibold,
     fontWeight: "700",
     fontSize: 14
   },
@@ -261,6 +545,7 @@ export const styles = StyleSheet.create({
   },
   promoKicker: {
     color: colors.yellow,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     fontSize: 12,
     textTransform: "uppercase",
@@ -269,6 +554,7 @@ export const styles = StyleSheet.create({
   promoTitle: {
     color: "#fff",
     fontSize: 24,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     lineHeight: 30,
     marginTop: 8,
@@ -355,17 +641,20 @@ export const styles = StyleSheet.create({
   },
   locationBarTitle: {
     color: colors.ink,
-    fontSize: 14,
+    fontSize: 15,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   locationBarSub: {
     color: colors.muted,
     fontSize: 12,
-    marginTop: 2
+    marginTop: 2,
+    fontFamily: fonts.regular
   },
   locationBarChevron: {
     color: colors.primary,
     fontSize: 12,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   bannerWrap: {
@@ -394,24 +683,118 @@ export const styles = StyleSheet.create({
     width: 16
   },
   unserviceableCard: {
-    backgroundColor: "#fff7ed",
-    borderColor: "#fdba74",
+    backgroundColor: colors.paper,
+    borderColor: colors.primaryBorder,
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 18,
+    alignItems: "center",
+    ...softShadow
   },
   unserviceableTitle: {
     color: colors.ink,
-    fontSize: 16,
+    fontSize: 22,
+    fontFamily: fonts.bold,
     fontWeight: "800",
-    marginBottom: 6
+    marginBottom: 8,
+    textAlign: "center",
+    letterSpacing: -0.3
+  },
+  unserviceableTitleAccent: {
+    color: colors.primary,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
   },
   unserviceableSub: {
     color: colors.muted,
     fontSize: 13,
-    marginBottom: 10,
-    lineHeight: 18
+    marginBottom: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    fontFamily: fonts.regular
+  },
+  comingSoonCta: {
+    marginTop: 4,
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    alignSelf: "stretch"
+  },
+  comingSoonCtaText: {
+    color: "#fff",
+    fontSize: 15,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
+  },
+  changeLocationLink: {
+    marginTop: 14,
+    color: colors.primary,
+    fontSize: 14,
+    fontFamily: fonts.semibold,
+    fontWeight: "700",
+    textDecorationLine: "underline"
+  },
+  offerGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 22
+  },
+  offerCard: {
+    width: "47%",
+    backgroundColor: colors.paper,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: "hidden",
+    marginBottom: 2,
+    ...softShadow
+  },
+  offerCardDisabled: {
+    opacity: 0.5
+  },
+  offerImage: {
+    width: "100%",
+    height: 110,
+    backgroundColor: colors.primaryWash
+  },
+  offerImagePlaceholder: {
+    width: "100%",
+    height: 110,
+    backgroundColor: colors.primaryWash,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  offerImagePlaceholderText: {
+    fontSize: 36
+  },
+  offerCardBody: {
+    paddingHorizontal: 12,
+    paddingVertical: 12
+  },
+  offerCardTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontFamily: fonts.bold,
+    fontWeight: "800",
+    marginBottom: 4
+  },
+  offerCardPrice: {
+    color: colors.ink,
+    fontSize: 16,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
+  },
+  offerCardMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    fontFamily: fonts.medium,
+    marginTop: 2
   },
   modalBackdrop: {
     flex: 1,
@@ -432,6 +815,7 @@ export const styles = StyleSheet.create({
   quickText: {
     color: colors.ink,
     fontSize: 13,
+    fontFamily: fonts.semibold,
     fontWeight: "700",
     textAlign: "center"
   },
@@ -444,6 +828,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.ink,
     fontSize: 20,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     marginBottom: 12,
     letterSpacing: -0.4
@@ -451,6 +836,7 @@ export const styles = StyleSheet.create({
   linkText: {
     color: colors.primary,
     fontSize: 14,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   serviceList: {
@@ -487,6 +873,7 @@ export const styles = StyleSheet.create({
   serviceTitle: {
     color: colors.ink,
     fontSize: 16,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   serviceMeta: {
@@ -497,6 +884,7 @@ export const styles = StyleSheet.create({
   chevron: {
     color: colors.primary,
     fontSize: 30,
+    fontFamily: fonts.regular,
     fontWeight: "300"
   },
   listItem: {
@@ -522,6 +910,7 @@ export const styles = StyleSheet.create({
   badgeText: {
     color: colors.primary,
     fontSize: 12,
+    fontFamily: fonts.bold,
     fontWeight: "900"
   },
   listInfo: {
@@ -530,6 +919,7 @@ export const styles = StyleSheet.create({
   listTitle: {
     color: colors.ink,
     fontSize: 16,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   listSub: {
@@ -546,6 +936,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     fontSize: 11,
+    fontFamily: fonts.bold,
     fontWeight: "900"
   },
   addressPreview: {
@@ -583,6 +974,7 @@ export const styles = StyleSheet.create({
   timelineTitle: {
     color: colors.ink,
     fontSize: 15,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   timelineSub: {
@@ -629,6 +1021,7 @@ export const styles = StyleSheet.create({
   tabLabel: {
     color: colors.muted,
     fontSize: 11,
+    fontFamily: fonts.semibold,
     fontWeight: "700"
   },
   tabLabelCompact: {
@@ -649,6 +1042,7 @@ export const styles = StyleSheet.create({
   vehicleTypeHint: {
     color: colors.teal,
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     marginBottom: 14,
     marginTop: 4
@@ -675,6 +1069,7 @@ export const styles = StyleSheet.create({
   checkboxLabel: {
     color: colors.ink,
     fontSize: 15,
+    fontFamily: fonts.semibold,
     fontWeight: "700"
   },
   searchRow: {
@@ -689,6 +1084,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "900"
   },
   bigLoader: {
@@ -707,6 +1103,7 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     color: colors.ink,
     fontSize: 20,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     marginBottom: 8,
     letterSpacing: -0.3
@@ -737,16 +1134,19 @@ export const styles = StyleSheet.create({
   actionEditText: {
     color: colors.primary,
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   actionDeleteText: {
     color: colors.danger,
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   actionDefaultText: {
     color: colors.success,
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   homeHeaderRow: {
@@ -770,6 +1170,7 @@ export const styles = StyleSheet.create({
   logoutText: {
     color: colors.danger,
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   inputDisabled: {
@@ -799,6 +1200,7 @@ export const styles = StyleSheet.create({
   geoDetectText: {
     color: "#fff",
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   geoHint: {
@@ -830,6 +1232,7 @@ export const styles = StyleSheet.create({
   geoToggleText: {
     color: colors.muted,
     fontSize: 14,
+    fontFamily: fonts.semibold,
     fontWeight: "700"
   },
   geoToggleTextActive: {
@@ -842,6 +1245,7 @@ export const styles = StyleSheet.create({
   geoRefreshText: {
     color: colors.primary,
     fontSize: 15,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   addressSectionHeader: {
@@ -892,6 +1296,7 @@ export const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 16,
     marginLeft: 10,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   selectOverlay: {
@@ -917,12 +1322,14 @@ export const styles = StyleSheet.create({
   selectSheetTitle: {
     color: colors.ink,
     fontSize: 18,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     letterSpacing: -0.3
   },
   selectCloseText: {
     color: colors.primary,
     fontSize: 14,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   selectSearch: {
@@ -963,6 +1370,7 @@ export const styles = StyleSheet.create({
   selectOptionLabel: {
     color: colors.ink,
     fontSize: 16,
+    fontFamily: fonts.semibold,
     fontWeight: "700"
   },
   selectOptionLabelActive: {
@@ -976,6 +1384,7 @@ export const styles = StyleSheet.create({
   selectCheck: {
     color: colors.primary,
     fontSize: 18,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     marginLeft: 10
   },
@@ -1002,6 +1411,7 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     color: colors.ink,
     fontSize: 17,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     marginBottom: 8
   },
@@ -1017,6 +1427,7 @@ export const styles = StyleSheet.create({
   },
   emptyCtaText: {
     color: "#fff",
+    fontFamily: fonts.bold,
     fontWeight: "800",
     fontSize: 14
   },
@@ -1040,6 +1451,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     color: colors.ink,
     fontSize: 17,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   typeBadge: {
@@ -1051,6 +1463,7 @@ export const styles = StyleSheet.create({
   typeBadgeText: {
     color: colors.primary,
     fontSize: 11,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   progressMeta: {
@@ -1077,6 +1490,7 @@ export const styles = StyleSheet.create({
   stepLabel: {
     color: colors.primary,
     fontSize: 13,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     letterSpacing: 0.2,
     marginBottom: 12,
@@ -1088,6 +1502,7 @@ export const styles = StyleSheet.create({
   timePickerReadout: {
     color: colors.ink,
     fontSize: 28,
+    fontFamily: fonts.bold,
     fontWeight: "900",
     letterSpacing: -0.5,
     marginBottom: 4
@@ -1101,6 +1516,7 @@ export const styles = StyleSheet.create({
   timePickerLabel: {
     color: colors.ink,
     fontSize: 13,
+    fontFamily: fonts.semibold,
     fontWeight: "700",
     marginBottom: 8,
     marginTop: 4
@@ -1130,6 +1546,7 @@ export const styles = StyleSheet.create({
   timePickerChipText: {
     color: colors.muted,
     fontSize: 14,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   timePickerChipTextActive: {
@@ -1203,6 +1620,7 @@ export const styles = StyleSheet.create({
   },
   primaryCtaText: {
     color: "#fff",
+    fontFamily: fonts.bold,
     fontWeight: "800",
     fontSize: 15
   },
@@ -1219,6 +1637,7 @@ export const styles = StyleSheet.create({
   },
   secondaryCtaText: {
     color: colors.primary,
+    fontFamily: fonts.bold,
     fontWeight: "800",
     fontSize: 14
   },
@@ -1233,6 +1652,7 @@ export const styles = StyleSheet.create({
   },
   skipCtaText: {
     color: "#fff",
+    fontFamily: fonts.bold,
     fontWeight: "800",
     fontSize: 15
   },
@@ -1263,6 +1683,7 @@ export const styles = StyleSheet.create({
   skipStatusText: {
     color: colors.primaryDark,
     fontSize: 12,
+    fontFamily: fonts.bold,
     fontWeight: "800"
   },
   feedbackBox: {
@@ -1305,6 +1726,7 @@ export const styles = StyleSheet.create({
   mapPickerTitle: {
     color: colors.ink,
     fontSize: 20,
+    fontFamily: fonts.bold,
     fontWeight: "900"
   },
   mapPickerHint: {
@@ -1375,6 +1797,7 @@ export const styles = StyleSheet.create({
   profileImagePlaceholder: {
     color: colors.muted,
     fontSize: 11,
+    fontFamily: fonts.semibold,
     fontWeight: "700",
     textAlign: "center",
     paddingHorizontal: 8

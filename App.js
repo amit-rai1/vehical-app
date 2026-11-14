@@ -20,11 +20,15 @@ import { HelpScreen } from "./src/screens/HelpScreen";
 import { PartnerJobDetailScreen } from "./src/screens/PartnerJobDetailScreen";
 import { PartnerJobsScreen } from "./src/screens/PartnerJobsScreen";
 import { PlanDetailScreen } from "./src/screens/PlanDetailScreen";
+import { PlanCheckoutSummaryScreen } from "./src/screens/PlanCheckoutSummaryScreen";
 import { PaymentScreen } from "./src/screens/PaymentScreen";
 import { ServicesScreen } from "./src/screens/ServicesScreen";
 import { TrackScreen } from "./src/screens/TrackScreen";
 import { VehiclesScreen } from "./src/screens/VehiclesScreen";
 import { WelcomeScreen } from "./src/screens/WelcomeScreen";
+import { MyPlansScreen } from "./src/screens/MyPlansScreen";
+import { InvoicesScreen } from "./src/screens/InvoicesScreen";
+import { MyFeedbackScreen } from "./src/screens/MyFeedbackScreen";
 import { styles } from "./src/styles/appStyles";
 import { colors, fonts } from "./src/theme";
 import { FeedbackProvider } from "./src/feedback";
@@ -64,6 +68,7 @@ function AppShell() {
   const [selectedPartnerJobId, setSelectedPartnerJobId] = useState(null);
   const [screen, setScreen] = useState("root");
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [checkoutSummary, setCheckoutSummary] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [pendingBookingPlanId, setPendingBookingPlanId] = useState(null);
   const [authGate, setAuthGate] = useState("welcome");
@@ -78,6 +83,7 @@ function AppShell() {
     setSelectedService(null);
     setSelectedPartnerJobId(null);
     setPaymentInfo(null);
+    setCheckoutSummary(null);
     setPendingBookingPlanId(null);
   }
 
@@ -114,15 +120,20 @@ function AppShell() {
       }
 
       if (screen === "payment") {
+        setScreen("planSummary");
+        return true;
+      }
+      if (screen === "planSummary") {
         setScreen("planDetail");
         return true;
       }
       if (screen === "planDetail") {
+        setCheckoutSummary(null);
         setScreen("root");
         return true;
       }
 
-      if (tab === "help") {
+      if (["help", "myPlans", "invoices", "feedback"].includes(tab)) {
         setTab("account");
         setScreen("root");
         return true;
@@ -212,7 +223,23 @@ function AppShell() {
       return (
         <PlanDetailScreen
           service={selectedService}
-          onBack={() => setScreen("root")}
+          onBack={() => {
+            setCheckoutSummary(null);
+            setScreen("root");
+          }}
+          onContinueToSummary={summary => {
+            setCheckoutSummary(summary);
+            setScreen("planSummary");
+          }}
+        />
+      );
+    }
+
+    if (screen === "planSummary" && checkoutSummary) {
+      return (
+        <PlanCheckoutSummaryScreen
+          summary={checkoutSummary}
+          onBack={() => setScreen("planDetail")}
           onOrderCreated={info => {
             setPaymentInfo(info);
             setScreen("payment");
@@ -226,9 +253,10 @@ function AppShell() {
         <PaymentScreen
           user={user}
           paymentInfo={paymentInfo}
-          onBack={() => setScreen("planDetail")}
+          onBack={() => setScreen("planSummary")}
           onPaymentSuccess={() => {
             setPaymentInfo(null);
+            setCheckoutSummary(null);
             setScreen("root");
             setTab("home");
             bumpRefresh();
@@ -288,6 +316,46 @@ function AppShell() {
       );
     }
 
+    if (tab === "myPlans") {
+      return (
+        <MyPlansScreen
+          refreshKey={refreshKey}
+          onBack={() => {
+            setTab("account");
+            setScreen("root");
+          }}
+          onBook={() => {
+            setTab("booking");
+            setScreen("root");
+          }}
+        />
+      );
+    }
+
+    if (tab === "invoices") {
+      return (
+        <InvoicesScreen
+          refreshKey={refreshKey}
+          onBack={() => {
+            setTab("account");
+            setScreen("root");
+          }}
+        />
+      );
+    }
+
+    if (tab === "feedback") {
+      return (
+        <MyFeedbackScreen
+          refreshKey={refreshKey}
+          onBack={() => {
+            setTab("account");
+            setScreen("root");
+          }}
+        />
+      );
+    }
+
     if (tab === "account") {
       return (
         <AccountScreen
@@ -323,6 +391,7 @@ function AppShell() {
     );
   }, [
     authGate,
+    checkoutSummary,
     partnerTab,
     paymentInfo,
     pendingBookingPlanId,
@@ -334,7 +403,11 @@ function AppShell() {
     user
   ]);
 
-  const showCustomerTabs = Boolean(user) && !isPartner(user) && screen === "root";
+  const showCustomerTabs =
+    Boolean(user) &&
+    !isPartner(user) &&
+    screen === "root" &&
+    CUSTOMER_TAB_KEYS.includes(tab);
   const showPartnerTabs =
     Boolean(user) && isPartner(user) && screen === "root";
   const showTabs = showCustomerTabs || showPartnerTabs;

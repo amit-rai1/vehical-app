@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   Linking,
   ScrollView,
@@ -153,56 +152,35 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
       await info("Limit reached", "You can upload up to 5 photos.");
       return;
     }
-    Alert.alert("Add service photo", "Choose how to add photos", [
-      { text: "Take photo", onPress: () => takePhoto() },
-      { text: "Choose from gallery", onPress: () => pickFromGallery() },
-      { text: "Cancel", style: "cancel" }
-    ]);
+    await takePhoto();
   }
 
   async function takePhoto() {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      await error("Permission needed", "Allow camera access to take service photos.");
-      return;
-    }
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        await error("Permission needed", "Allow camera access to take service photos.");
+        return;
+      }
 
-    const remaining = 5 - pickedImages.length;
-    if (remaining <= 0) return;
+      const remaining = 5 - pickedImages.length;
+      if (remaining <= 0) return;
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-      base64: true
-    });
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        quality: 0.45,
+        base64: true,
+        exif: false
+      });
 
-    if (result.canceled) return;
-    await appendPickedAssets(result.assets);
-  }
-
-  async function pickFromGallery() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+      if (result.canceled) return;
+      await appendPickedAssets(result.assets);
+    } catch (err) {
       await error(
-        "Permission needed",
-        "Allow photo library access to upload service images."
+        "Camera unavailable",
+        err?.message || "Could not open the camera. Please try again."
       );
-      return;
     }
-
-    const remaining = 5 - pickedImages.length;
-    if (remaining <= 0) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.7,
-      base64: true,
-      selectionLimit: remaining
-    });
-
-    if (result.canceled) return;
-    await appendPickedAssets(result.assets);
   }
 
   async function handleComplete() {
@@ -315,14 +293,7 @@ export function PartnerJobDetailScreen({ bookingId, onBack, onChanged }) {
             Upload at least one photo of the completed work before marking the job complete.
           </Text>
           <Button title="Add photos" variant="ghost" onPress={promptAddPhotos} disabled={busy} />
-          <View style={styles.row}>
-            <View style={styles.flex}>
-              <Button title="Camera" variant="ghost" onPress={takePhoto} disabled={busy} />
-            </View>
-            <View style={styles.flex}>
-              <Button title="Gallery" variant="ghost" onPress={pickFromGallery} disabled={busy} />
-            </View>
-          </View>
+          <Button title="Camera" variant="ghost" onPress={takePhoto} disabled={busy} />
           {pickedImages.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.vehicleStrip}>
               {pickedImages.map((img, index) => (

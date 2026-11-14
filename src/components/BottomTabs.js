@@ -1,6 +1,8 @@
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { styles } from "../styles/appStyles";
+
+const logoSource = require("../../assets/logo.png");
 
 const CUSTOMER_TABS = [
   ["home", "⌂", "Home"],
@@ -9,13 +11,13 @@ const CUSTOMER_TABS = [
   ["vehicles", "🚗", "Vehicles"],
   ["addresses", "📍", "Address"],
   ["track", "◎", "Track"],
-  ["account", "☺", "Account"]
+  ["account", "logo", "Account"]
 ];
 
 const PARTNER_TABS = [
   ["jobs", "▦", "Jobs"],
   ["schedule", "📅", "Today"],
-  ["account", "☺", "Account"]
+  ["account", "logo", "Account"]
 ];
 
 export function BottomTabs({
@@ -42,9 +44,23 @@ export function BottomTabs({
             ]}
             activeOpacity={0.7}
           >
-            <Text style={[styles.tabIcon, compact && styles.tabIconCompact, active && styles.activeTab]}>
-              {icon}
-            </Text>
+            {icon === "logo" ? (
+              <Image
+                source={logoSource}
+                style={[
+                  styles.tabLogoIcon,
+                  compact && styles.tabLogoIconCompact,
+                  active && styles.tabLogoIconActive
+                ]}
+                resizeMode="contain"
+              />
+            ) : (
+              <Text
+                style={[styles.tabIcon, compact && styles.tabIconCompact, active && styles.activeTab]}
+              >
+                {icon}
+              </Text>
+            )}
             <Text
               style={[styles.tabLabel, compact && styles.tabLabelCompact, active && styles.activeTab]}
               numberOfLines={1}

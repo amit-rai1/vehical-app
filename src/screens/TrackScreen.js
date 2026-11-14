@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Linking,
   RefreshControl,
   ScrollView,
@@ -127,6 +128,7 @@ export function TrackScreen({ refreshKey }) {
   const [skipFormBookingId, setSkipFormBookingId] = useState(null);
   const [skipReason, setSkipReason] = useState("");
   const [submittingSkip, setSubmittingSkip] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   const loadTrackData = useCallback(async () => {
     showLoading("Loading bookings…");
@@ -134,7 +136,7 @@ export function TrackScreen({ refreshKey }) {
       const [bookingsRes, skipsRes] = await Promise.all([
         bookingApi.list({ pageNumber: 1, pageSize: 50 }).catch(err => {
           console.warn("Failed to load bookings:", err.message);
-          return null;
+          return { __error: err.message || "Unable to load bookings." };
         }),
         skipRequestApi.list(1, 50).catch(err => {
           console.warn("Failed to load skip requests:", err.message);
@@ -142,10 +144,15 @@ export function TrackScreen({ refreshKey }) {
         })
       ]);
 
-      if (bookingsRes) {
+      if (bookingsRes?.__error) {
+        setBookings([]);
+        setLoadError(bookingsRes.__error);
+      } else if (bookingsRes) {
         setBookings(asRecords(bookingsRes));
+        setLoadError(null);
       } else {
         setBookings([]);
+        setLoadError("Unable to load bookings.");
       }
 
       if (skipsRes) {
@@ -269,7 +276,12 @@ export function TrackScreen({ refreshKey }) {
   );
 
   if (loading) {
-    return <View style={styles.flex} />;
+    return (
+      <View style={[styles.flex, styles.centered]}>
+        <ActivityIndicator color={colors.primary} size="large" />
+        <Text style={[styles.listSub, { marginTop: 12 }]}>Loading bookings…</Text>
+      </View>
+    );
   }
 
   return (
@@ -289,9 +301,23 @@ export function TrackScreen({ refreshKey }) {
     >
       <Header title="Track Service" subtitle={subtitle} />
 
-      {bookings.length === 0 ? (
+      {loadError ? (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No bookings yet</Text>
+          <Text style={styles.emptyTitle}>Couldn’t Load Bookings</Text>
+          <Text style={styles.emptySub}>{loadError}</Text>
+          <TouchableOpacity
+            style={[styles.emptyCta, { marginTop: 10 }]}
+            onPress={() => {
+              setLoading(true);
+              loadTrackData();
+            }}
+          >
+            <Text style={styles.emptyCtaText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : bookings.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No Bookings Yet</Text>
           <Text style={styles.emptySub}>
             When you book a service from an active plan, tracking details will show up here.
           </Text>

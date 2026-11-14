@@ -79,6 +79,7 @@ export function PlanCalendar({
   scheduledDates = [],
   selectedDate,
   onSelectDate,
+  onPressCompletedDay,
   disablePast = true
 }) {
   const rangeStart = toDateOnly(startDate);
@@ -139,7 +140,7 @@ export function PlanCalendar({
             return <View key={`e-${idx}`} style={{ width: "14.28%", height: 44 }} />;
           }
           const key = ymd(date);
-          const selectable = inRange(date) && !isPast(date) && !!onSelectDate;
+          const canBook = inRange(date) && !isPast(date) && !!onSelectDate;
           const completedCount = completedCounts[key] || 0;
           const scheduledCount = scheduledCounts[key] || 0;
           const completed = completedCount > 0;
@@ -147,12 +148,16 @@ export function PlanCalendar({
           const badge = completedCount > 1 ? completedCount : scheduledCount > 1 ? scheduledCount : 0;
           const selected = selectedDate && ymd(toDateOnly(selectedDate)) === key;
           const muted = !inRange(date);
+          const pressable = canBook || (completed && !!onPressCompletedDay);
 
           return (
             <TouchableOpacity
               key={key}
-              disabled={!selectable}
-              onPress={() => onSelectDate?.(key)}
+              disabled={!pressable}
+              onPress={() => {
+                if (canBook) onSelectDate?.(key);
+                else if (completed) onPressCompletedDay?.(key);
+              }}
               style={{
                 width: "14.28%",
                 height: 44,
@@ -178,26 +183,68 @@ export function PlanCalendar({
                 {date.getDate()}
               </Text>
               {badge > 0 ? (
-                <Text
+                <View
                   style={{
-                    fontSize: 10,
-                    fontWeight: "800",
-                    color: selected ? colors.primaryWash : completed ? "#166534" : colors.primaryDark,
-                    marginTop: -1
+                    marginTop: 1,
+                    minWidth: 14,
+                    height: 14,
+                    borderRadius: 4,
+                    paddingHorizontal: 3,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: selected
+                      ? "#fff"
+                      : completed
+                        ? "#166534"
+                        : colors.primary
                   }}
                 >
-                  ×{badge}
-                </Text>
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      fontWeight: "800",
+                      color: selected ? colors.primaryDark : "#fff"
+                    }}
+                  >
+                    {badge}
+                  </Text>
+                </View>
               ) : null}
             </TouchableOpacity>
           );
         })}
       </View>
 
-      <View style={{ marginTop: 10, gap: 4 }}>
-        <Text style={styles.listSub}>
-          Green = completed · Blue = scheduled · ×N = services that day
-        </Text>
+      <View style={{ marginTop: 10, gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 4,
+                backgroundColor: "#dcfce7",
+                borderWidth: 1,
+                borderColor: "#86efac"
+              }}
+            />
+            <Text style={styles.listSub}>Completed</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 4,
+                backgroundColor: colors.primaryWash,
+                borderWidth: 1,
+                borderColor: colors.primaryBorder
+              }}
+            />
+            <Text style={styles.listSub}>Scheduled</Text>
+          </View>
+          <Text style={styles.listSub}>Number badge = services that day</Text>
+        </View>
         {rangeStart && rangeEnd ? (
           <Text style={styles.listSub}>
             Bookable: {rangeStart.toLocaleDateString("en-IN")} –{" "}

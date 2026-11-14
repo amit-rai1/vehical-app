@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { addressApi, planApi, vehicleApi } from "../api/client";
+import { addressApi, vehicleApi } from "../api/client";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
 import { useFeedback } from "../feedback";
@@ -31,7 +31,7 @@ function sameVehicleType(a, b) {
   return normalize(a) === normalize(b);
 }
 
-export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
+export function PlanDetailScreen({ service, onBack, onContinueToSummary }) {
   const { showLoading, hideLoading, error, info } = useFeedback();
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
@@ -42,7 +42,6 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
   const [hour12, setHour12] = useState(defaultPreferredTime().hour12);
   const [minute, setMinute] = useState(defaultPreferredTime().minute);
   const [meridiem, setMeridiem] = useState(defaultPreferredTime().meridiem);
-  const [creatingOrder, setCreatingOrder] = useState(false);
 
   const serviceName = service?.raw?.name || service?.title || "Service plan";
   const serviceVehicleType = service?.raw?.vehicleType;
@@ -104,52 +103,37 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
     [vehicles, serviceVehicleType]
   );
 
-  async function handleBuyPlan() {
+  async function handleContinue() {
     if (!selectedPlan) {
-      await info("Select a plan", "Please select a plan to continue.");
+      await info("Select a Plan", "Please select a plan to continue.");
       return;
     }
     if (!vehicleId) {
-      await info("Select vehicle", `Please select a ${typeLabel} vehicle for this plan.`);
+      await info("Select Vehicle", `Please select a ${typeLabel} vehicle for this plan.`);
       return;
     }
     if (!addressId) {
-      await info("Select address", "Please select a service address.");
+      await info("Select Address", "Please select a service address.");
       return;
     }
 
-    setCreatingOrder(true);
-    showLoading("Starting payment…");
-    try {
-      const preferredServiceTime = toHHmm24({ hour12, minute, meridiem });
-      const body = {
-        servicePlanId: selectedPlan.id || selectedPlan.servicePlanId,
-        vehicleId,
-        addressId,
-        preferredServiceTime
-      };
-
-      const response = await planApi.purchase(body);
-      const payment = response?.data || response;
-
-      if (!payment || !payment.razorpayOrderId) {
-        throw new Error("Failed to create payment order.");
-      }
-
-      onOrderCreated?.({
-        payment,
-        service: service?.raw || service,
-        plan: selectedPlan,
-        vehicleId,
-        addressId,
-        preferredServiceTime
-      });
-    } catch (err) {
-      await error("Unable to start payment", err.message || "Please try again.");
-    } finally {
-      hideLoading();
-      setCreatingOrder(false);
-    }
+    const preferredServiceTime = toHHmm24({ hour12, minute, meridiem });
+    const vehicle = matchingVehicles.find(v => v.vehicleId === vehicleId);
+    const address = addresses.find(a => a.addressId === addressId);
+    onContinueToSummary?.({
+      service: service?.raw || service,
+      plan: selectedPlan,
+      vehicleId,
+      addressId,
+      vehicleLabel: vehicle
+        ? [vehicle.vehicleNumber, vehicle.makeName, vehicle.modelName].filter(Boolean).join(" · ")
+        : `Vehicle #${vehicleId}`,
+      addressLabel: address
+        ? [address.addressLine1, address.city, address.pincode].filter(Boolean).join(", ")
+        : `Address #${addressId}`,
+      preferredServiceTime,
+      preferredTimeLabel: timeLabel
+    });
   }
 
   return (
@@ -237,34 +221,48 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
         <Text style={[styles.listTitle, { marginTop: 10 }]}>{timeLabel}</Text>
 
         <Text style={[styles.listSub, { marginTop: 12 }]}>Hour</Text>
-        <View style={styles.rowWrap}>
-          {PREFERRED_HOURS_12.map(h => (
-            <TouchableOpacity
-              key={h}
-              onPress={() => setHour12(h)}
-              style={[styles.chip, hour12 === h && styles.activeChip]}
-            >
-              <Text style={[styles.chipText, hour12 === h && styles.activeChipText]}>
-                {pad2(h)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeChipScroll}>
+          <View style={styles.rowWrap}>
+            {PREFERRED_HOURS_12.map(h => (
+              <TouchableOpacity
+                key={h}
+                onPress={() => setHour12(Number(h))}
+                style={[styles.chip, Number(hour12) === Number(h) && styles.activeChip]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    Number(hour12) === Number(h) && styles.activeChipText
+                  ]}
+                >
+                  {pad2(h)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
 
         <Text style={[styles.listSub, { marginTop: 8 }]}>Minutes</Text>
-        <View style={styles.rowWrap}>
-          {PREFERRED_MINUTES.map(m => (
-            <TouchableOpacity
-              key={m}
-              onPress={() => setMinute(m)}
-              style={[styles.chip, minute === m && styles.activeChip]}
-            >
-              <Text style={[styles.chipText, minute === m && styles.activeChipText]}>
-                {pad2(m)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeChipScroll}>
+          <View style={styles.rowWrap}>
+            {PREFERRED_MINUTES.map(m => (
+              <TouchableOpacity
+                key={m}
+                onPress={() => setMinute(Number(m))}
+                style={[styles.chip, Number(minute) === Number(m) && styles.activeChip]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    Number(minute) === Number(m) && styles.activeChipText
+                  ]}
+                >
+                  {pad2(m)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
 
         <Text style={[styles.listSub, { marginTop: 8 }]}>AM / PM</Text>
         <View style={styles.rowWrap}>
@@ -288,9 +286,9 @@ export function PlanDetailScreen({ service, onBack, onOrderCreated }) {
         </View>
         <View style={styles.flex}>
           <Button
-            title={creatingOrder ? "Starting..." : "Continue to Pay"}
-            onPress={handleBuyPlan}
-            disabled={creatingOrder || !selectedPlan}
+            title="Continue"
+            onPress={handleContinue}
+            disabled={!selectedPlan}
           />
         </View>
       </View>

@@ -13,6 +13,7 @@ import { PlanCalendar } from "../components/PlanCalendar";
 import { useFeedback } from "../feedback";
 import { colors } from "../theme";
 import { styles } from "../styles/appStyles";
+import { formatApiTimeDisplay } from "../utils/preferredTime";
 
 function vehicleTypeLabel(type) {
   const value = String(type ?? "");
@@ -221,7 +222,10 @@ export function BookingScreen({
                 Address: {planDetail?.addressSummary || "—"}
               </Text>
               <Text style={styles.listSub}>
-                Time: {planDetail?.preferredServiceTime || selectedPlan.preferredServiceTime || "—"}
+                Time:{" "}
+                {formatApiTimeDisplay(
+                  planDetail?.preferredServiceTime || selectedPlan.preferredServiceTime
+                )}
               </Text>
             </>
           )}

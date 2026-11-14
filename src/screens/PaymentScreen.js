@@ -79,16 +79,17 @@ export function PaymentScreen({ user, paymentInfo, onBack, onPaymentSuccess }) {
 
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-      <Header title="Review & pay" subtitle="Confirm your plan purchase." />
+      <Header title="Review & Pay" subtitle="Confirm your plan purchase." />
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>Order summary</Text>
+        <Text style={styles.panelTitle}>Order Summary</Text>
         <Text style={styles.listTitle}>{paymentInfo?.plan?.name || "Service plan"}</Text>
         <Text style={[styles.listTitle, { marginTop: 6 }]}>
           {amountLabel || `${currency} ${amount ?? "--"}`}
         </Text>
-        {paymentInfo?.preferredServiceTime ? (
+        {paymentInfo?.preferredTimeLabel || paymentInfo?.preferredServiceTime ? (
           <Text style={styles.listSub}>
-            Preferred time: {paymentInfo.preferredServiceTime}
+            Preferred Time:{" "}
+            {paymentInfo.preferredTimeLabel || paymentInfo.preferredServiceTime}
           </Text>
         ) : null}
         <Text style={[styles.listSub, { marginTop: 8 }]}>

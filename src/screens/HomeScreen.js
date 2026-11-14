@@ -154,6 +154,7 @@ export function HomeScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [submittingArea, setSubmittingArea] = useState(false);
+  const [dayImages, setDayImages] = useState(null);
   const bannerRef = useRef(null);
 
   const selectedAddress =
@@ -302,9 +303,11 @@ export function HomeScreen({
   async function togglePlanCalendar(planId) {
     if (expandedPlanId === planId) {
       setExpandedPlanId(null);
+      setDayImages(null);
       return;
     }
     setExpandedPlanId(planId);
+    setDayImages(null);
     if (planDetails[planId]) return;
     try {
       const res = await planApi.get(planId);
@@ -378,28 +381,36 @@ export function HomeScreen({
         />
       }
     >
-      <TouchableOpacity
-        style={styles.locationBar}
-        onPress={() => setPickerOpen(true)}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.locationBarIcon}>📍</Text>
-        <View style={styles.locationBarText}>
-          <Text style={styles.locationBarTitle} numberOfLines={1}>
-            {addressTitle(selectedAddress)}
-          </Text>
-          <Text style={styles.locationBarSub} numberOfLines={1}>
-            {checkingPin
-              ? "Checking serviceability…"
-              : selectedAddress
-                ? addressLabel(selectedAddress)
-                : "Tap to choose address"}
-          </Text>
-        </View>
-        <Text style={styles.locationBarChevron}>▼</Text>
-      </TouchableOpacity>
+      <View style={styles.locationBarRow}>
+        <TouchableOpacity
+          style={styles.locationBar}
+          onPress={() => setPickerOpen(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.locationBarIcon}>📍</Text>
+          <View style={styles.locationBarText}>
+            <Text style={styles.locationBarTitle} numberOfLines={1}>
+              {addressTitle(selectedAddress)}
+            </Text>
+            <Text style={styles.locationBarSub} numberOfLines={1}>
+              {checkingPin
+                ? "Checking serviceability…"
+                : selectedAddress
+                  ? addressLabel(selectedAddress)
+                  : "Tap to choose address"}
+            </Text>
+          </View>
+          <Text style={styles.locationBarChevron}>▼</Text>
+        </TouchableOpacity>
+        <Image
+          source={require("../../assets/logo.png")}
+          style={styles.headerLogo}
+          resizeMode="contain"
+          accessibilityLabel="MARKER"
+        />
+      </View>
 
-      <Header title={`Hello, ${user?.name || "Customer"}`} />
+      <Header title={`Hello, ${user?.name || "Customer"}`} showLogo={false} />
 
       {banners.length > 0 ? (
         <View style={styles.bannerWrap}>
@@ -590,12 +601,12 @@ export function HomeScreen({
               </View>
 
               <TouchableOpacity
-                style={styles.planBookLink}
+                style={styles.planCalendarCta}
                 onPress={() => togglePlanCalendar(plan.planId)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.linkText}>
-                  {expandedPlanId === plan.planId ? "Hide calendar" : "Show plan calendar ›"}
+                <Text style={styles.planCalendarCtaText}>
+                  {expandedPlanId === plan.planId ? "Hide Plan Calendar" : "Show Plan Calendar"}
                 </Text>
               </TouchableOpacity>
 
@@ -614,7 +625,39 @@ export function HomeScreen({
                         endDate={detail.endDate}
                         completedDates={detail.completedServiceDates}
                         scheduledDates={detail.scheduledServiceDates}
+                        onPressCompletedDay={dayKey => {
+                          const matches = (detail.completedServiceImages || []).filter(
+                            row => row.date === dayKey
+                          );
+                          const images = matches.flatMap(row => row.images || []);
+                          setDayImages({ date: dayKey, images });
+                        }}
                       />
+                      {dayImages?.date ? (
+                        <View style={{ marginTop: 12 }}>
+                          <Text style={styles.listTitle}>
+                            Service Photos · {dayImages.date}
+                          </Text>
+                          {dayImages.images.length === 0 ? (
+                            <Text style={styles.listSub}>No partner photos for this day.</Text>
+                          ) : (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                              {dayImages.images.map((img, idx) => (
+                                <Image
+                                  key={`${dayImages.date}-${idx}`}
+                                  source={{
+                                    uri: String(img).startsWith("data:") || String(img).startsWith("http")
+                                      ? img
+                                      : `data:image/jpeg;base64,${img}`
+                                  }}
+                                  style={styles.planDayThumb}
+                                  resizeMode="cover"
+                                />
+                              ))}
+                            </ScrollView>
+                          )}
+                        </View>
+                      ) : null}
                     </>
                   ) : (
                     <ActivityIndicator color={colors.primary} />
@@ -625,21 +668,6 @@ export function HomeScreen({
           );
         })
       )}
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Vehicles</Text>
-        <TouchableOpacity onPress={() => onNavigate("vehicles")}>
-          <Text style={styles.linkText}>Manage</Text>
-        </TouchableOpacity>
-      </View>
-      {vehicles.slice(0, 3).map(v => (
-        <View key={v.vehicleId} style={styles.addressPreview}>
-          <Text style={styles.listTitle}>{v.vehicleNumber}</Text>
-          <Text style={styles.listSub}>
-            {[v.makeName, v.modelName].filter(Boolean).join(" · ")}
-          </Text>
-        </View>
-      ))}
 
       <Modal
         visible={pickerOpen}

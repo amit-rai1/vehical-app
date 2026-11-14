@@ -151,7 +151,7 @@ export function AuthScreen({ onSignedIn, onBack }) {
               return;
             }
             const result = await ImagePicker.launchCameraAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              mediaTypes: ["images"],
               allowsEditing,
               aspect,
               quality: 0.55,
@@ -178,7 +178,7 @@ export function AuthScreen({ onSignedIn, onBack }) {
               return;
             }
             const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              mediaTypes: ["images"],
               allowsEditing,
               aspect,
               quality: 0.55,
@@ -427,16 +427,6 @@ export function AuthScreen({ onSignedIn, onBack }) {
           contentContainerStyle={styles.authContainer}
           keyboardShouldPersistTaps="handled"
         >
-          {onBack ? (
-            <TouchableOpacity
-              onPress={onBack}
-              style={{ alignSelf: "flex-start", marginBottom: 8, paddingVertical: 4 }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.linkText}>‹ Back</Text>
-            </TouchableOpacity>
-          ) : null}
-
           <Image
             source={require("../../assets/logo.png")}
             style={styles.authLogo}

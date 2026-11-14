@@ -3,7 +3,7 @@ export const colors = {
   muted: "#64748b",
   line: "#e2e8f0",
   paper: "#ffffff",
-  wash: "#f1f5f9",
+  wash: "#ffffff",
   primary: "#386FC9",
   primaryDark: "#103675",
   primaryLight: "#8FB4E8",

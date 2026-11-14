@@ -620,7 +620,14 @@ export const styles = StyleSheet.create({
   quickActionDisabled: {
     opacity: 0.45
   },
+  locationBarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 14
+  },
   locationBar: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.paper,
@@ -629,7 +636,6 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 14,
     gap: 10,
     ...softShadow
   },
@@ -1009,6 +1015,43 @@ export const styles = StyleSheet.create({
     minWidth: 0,
     flex: 1,
     paddingHorizontal: 0
+  },
+  tabLogoIcon: {
+    width: 22,
+    height: 22,
+    marginBottom: 2
+  },
+  tabLogoIconCompact: {
+    width: 18,
+    height: 18
+  },
+  tabLogoIconActive: {
+    opacity: 1
+  },
+  planCalendarCta: {
+    marginTop: 14,
+    minHeight: 46,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14
+  },
+  planCalendarCtaText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: fonts.bold,
+    fontWeight: "800"
+  },
+  planDayThumb: {
+    width: 88,
+    height: 88,
+    borderRadius: 12,
+    marginRight: 8,
+    backgroundColor: colors.primaryWash
+  },
+  timeChipScroll: {
+    marginBottom: 8
   },
   tabIcon: {
     fontSize: 20,

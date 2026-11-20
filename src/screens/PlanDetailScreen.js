@@ -83,8 +83,13 @@ export function PlanDetailScreen({ service, onBack, onContinueToSummary }) {
         );
         const defV = matching.find(v => v.isDefault) || matching[0];
         if (defV) setVehicleId(defV.vehicleId);
-        const defA = addressesSafe.find(a => a.isDefault) || addressesSafe[0];
+        const serviceableAddresses = addressesSafe.filter(
+          a => a.isServiceable !== false
+        );
+        const defA =
+          serviceableAddresses.find(a => a.isDefault) || serviceableAddresses[0];
         if (defA) setAddressId(defA.addressId);
+        else setAddressId(null);
       } catch (err) {
         console.warn(err.message);
       } finally {
@@ -113,13 +118,20 @@ export function PlanDetailScreen({ service, onBack, onContinueToSummary }) {
       return;
     }
     if (!addressId) {
-      await info("Select Address", "Please select a service address.");
+      await info("Select Address", "Please select a serviceable address.");
       return;
     }
 
     const preferredServiceTime = toHHmm24({ hour12, minute, meridiem });
     const vehicle = matchingVehicles.find(v => v.vehicleId === vehicleId);
     const address = addresses.find(a => a.addressId === addressId);
+    if (address && address.isServiceable === false) {
+      await info(
+        "Not available yet",
+        "This address is outside our service area. Choose a serviceable address to continue."
+      );
+      return;
+    }
     onContinueToSummary?.({
       service: service?.raw || service,
       plan: selectedPlan,
@@ -197,21 +209,33 @@ export function PlanDetailScreen({ service, onBack, onContinueToSummary }) {
         {addresses.length === 0 ? (
           <Text style={styles.emptySub}>Add a service address before purchasing.</Text>
         ) : (
-          addresses.map(a => (
-            <TouchableOpacity
-              key={a.addressId}
-              onPress={() => setAddressId(a.addressId)}
-              style={[
-                styles.addressPreview,
-                addressId === a.addressId && styles.selectedAddress
-              ]}
-            >
-              <Text style={styles.listTitle}>{a.addressType || "Address"}</Text>
-              <Text style={styles.listSub}>
-                {a.addressLine1 || a.label || a.fullAddress || ""}
-              </Text>
-            </TouchableOpacity>
-          ))
+          addresses.map(a => {
+            const disabled = a.isServiceable === false;
+            return (
+              <TouchableOpacity
+                key={a.addressId}
+                onPress={() => {
+                  if (disabled) return;
+                  setAddressId(a.addressId);
+                }}
+                disabled={disabled}
+                style={[
+                  styles.addressPreview,
+                  addressId === a.addressId && styles.selectedAddress,
+                  disabled && styles.addressPreviewDisabled
+                ]}
+              >
+                <Text style={[styles.listTitle, disabled && styles.listTitleDisabled]}>
+                  {a.addressType || "Address"}
+                  {disabled ? " · Not live yet" : ""}
+                </Text>
+                <Text style={[styles.listSub, disabled && styles.listSubDisabled]}>
+                  {a.addressLine1 || a.label || a.fullAddress || ""}
+                  {a.pincode ? ` · ${a.pincode}` : ""}
+                </Text>
+              </TouchableOpacity>
+            );
+          })
         )}
       </View>
 

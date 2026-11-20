@@ -688,53 +688,21 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     width: 16
   },
-  unserviceableCard: {
-    backgroundColor: colors.paper,
-    borderColor: colors.primaryBorder,
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 20,
+  notLiveWrap: {
     marginBottom: 18,
     alignItems: "center",
-    ...softShadow
+    width: "100%"
   },
-  unserviceableTitle: {
-    color: colors.ink,
-    fontSize: 22,
-    fontFamily: fonts.bold,
-    fontWeight: "800",
-    marginBottom: 8,
-    textAlign: "center",
-    letterSpacing: -0.3
-  },
-  unserviceableTitleAccent: {
-    color: colors.primary,
-    fontFamily: fonts.bold,
-    fontWeight: "800"
-  },
-  unserviceableSub: {
-    color: colors.muted,
-    fontSize: 13,
-    marginBottom: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    fontFamily: fonts.regular
-  },
-  comingSoonCta: {
-    marginTop: 4,
-    minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
+  notLiveTap: {
+    width: "100%",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 18,
-    alignSelf: "stretch"
+    overflow: "hidden",
+    borderRadius: 16
   },
-  comingSoonCtaText: {
-    color: "#fff",
-    fontSize: 15,
-    fontFamily: fonts.bold,
-    fontWeight: "800"
+  notLiveImage: {
+    height: 420,
+    borderRadius: 16,
+    backgroundColor: "#E8F4FC"
   },
   changeLocationLink: {
     marginTop: 14,
@@ -952,6 +920,17 @@ export const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#f8fafc",
     marginBottom: 14
+  },
+  addressPreviewDisabled: {
+    opacity: 0.5,
+    backgroundColor: "#eef2f7",
+    borderColor: "#d0d7e2"
+  },
+  listTitleDisabled: {
+    color: colors.muted
+  },
+  listSubDisabled: {
+    color: colors.muted
   },
   timeline: {
     marginTop: 12

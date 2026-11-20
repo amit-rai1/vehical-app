@@ -447,24 +447,20 @@ export function HomeScreen({
       ) : null}
 
       {!serviceable && selectedAddress ? (
-        <View style={styles.unserviceableCard}>
-          <Text style={styles.unserviceableTitle}>
-            WE ARE COMING{" "}
-            <Text style={styles.unserviceableTitleAccent}>SOON</Text>
-          </Text>
-          <Text style={styles.unserviceableSub}>
-            We're currently live in select areas and expanding quickly. Get notified when we are
-            near {selectedAddress.pincode}.
-          </Text>
+        <View style={styles.notLiveWrap}>
           <TouchableOpacity
-            style={styles.comingSoonCta}
+            style={styles.notLiveTap}
+            activeOpacity={0.92}
             onPress={submitAreaRequest}
             disabled={submittingArea}
-            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Notify on launch"
           >
-            <Text style={styles.comingSoonCtaText}>
-              {submittingArea ? "Sending…" : "Notify me"}
-            </Text>
+            <Image
+              source={require("../../assets/not-live-area.png")}
+              style={[styles.notLiveImage, { width: BANNER_WIDTH }]}
+              resizeMode="cover"
+            />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setPickerOpen(true)} activeOpacity={0.85}>
             <Text style={styles.changeLocationLink}>Change location</Text>
@@ -682,13 +678,17 @@ export function HomeScreen({
               {addresses.map(a => {
                 const id = a.addressId ?? a.id;
                 const selected = id === (selectedAddress?.addressId ?? selectedAddress?.id);
+                const notLive = a.isServiceable === false;
                 return (
                   <TouchableOpacity
                     key={id}
                     style={[styles.addressPreview, selected && { borderColor: colors.primary }]}
                     onPress={() => selectAddress(a)}
                   >
-                    <Text style={styles.listTitle}>{addressLabel(a)}</Text>
+                    <Text style={styles.listTitle}>
+                      {addressLabel(a)}
+                      {notLive ? " · Not live yet" : ""}
+                    </Text>
                     <Text style={styles.listSub}>{a.pincode}</Text>
                   </TouchableOpacity>
                 );
